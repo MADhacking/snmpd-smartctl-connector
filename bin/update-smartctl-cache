@@ -1,0 +1,127 @@
+#!/bin/bash
+
+function versioninfo
+{
+	VERSION="$Revision$"
+	VERSION="${VERSION%\ \$}"; VERSION="${VERSION#\:}"; VERSION="${VERSION##\ }"
+	VERSION="(CVS revision $VERSION)"
+	
+	NAME="$Name$"
+	NAME="${NAME%\ \$}"; NAME="${NAME#\:}"; NAME="${NAME##\ }"; NAME="${NAME##release-}"; NAME="${NAME//-/.}"
+	[[ -n $NAME ]] && NAME="Version $NAME "
+
+	echo ${CMDNAME}
+	echo ${NAME}${VERSION}
+
+	echo -e "\nCopyright (C) 2010 Hacking Networked Solutions"
+	echo "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>."
+	echo "This is free software: you are free to change and redistribute it."
+	echo "There is NO WARRANTY, to the extent permitted by law."
+}
+
+function helpscreen
+{
+	echo "Usage: ${CMDNAME} [OPTION]..."
+	echo "Automatically applies patches and copies files from the location specified in"
+	echo "${CFGFILE} or passed on the command line to the portage tree."
+	echo
+	echo "      --help                     display this help and exit"
+    echo "      --version                  output version information and exit"
+}
+
+function error_exit
+{
+	echo "Error: $1" >&2
+	exit $2
+}
+
+# Init local vars
+CMDNAME=$(basename ${0})
+CONFIG="/etc/snmpd-smartctl-connector"
+
+# Read the config file if we can
+[[ -r $CONFIG ]] && source $CONFIG
+
+# Process command line switches
+while (( $# > 0 ))
+do
+	case $1 in
+		--version)
+			versioninfo
+			exit
+		;;	
+		*)
+			helpscreen
+			shift 1
+			exit
+		;;
+	esac
+done
+
+# If we couldn't open the config file then complain and exit.
+[[ ! -r $CONFIG ]] && error_exit "Unable to open configuration file [$CONFIG]" 1
+
+# Check for sensible configuration values.
+[[ -z ${DEVICES} ]] && error_exit "No DEVICES defined in $CONFIG" 2
+[[ -z ${CACHEDIR} ]] && error_exit "No CACHEDIR defined in $CONFIG" 3
+[[ -z ${SMARTCMD} ]] && error_exit "No SMARTCMD defined in $CONFIG" 4
+
+# Check that the cache direcroty exists and is writable
+[[ ! -d ${CACHEDIR} ]] && error_exit "Cache direcroty [$CACHEDIR] does not exist" 5
+[[ ! -w ${CACHEDIR} ]] && error_exit "Cache direcroty [$CACHEDIR] is not writable" 6
+
+# Check that the info cache exists for all devices...
+for DEVICE in ${DEVICES[@]}; do
+	DEVFNAME=${DEVICE##\/}	 
+	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
+
+	# ...and set the INFO_REBUILD flag if it doesn't.
+	[[ ! -f ${DEVFNAME} ]] && INFO_REBUILD="YES" 
+done
+
+# If the INFO_REBUILD flag is set then rebuild the info cache for all devices.
+if [[ ! -z ${INFO_REBUILD} ]]; then
+	echo -n "Rebuilding info files..."
+	for DEVICE in ${DEVICES[@]}; do
+		DEVFNAME=${DEVICE##\/}	 
+		DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
+	
+		${SMARTCMD} -i ${DEVICE} > ${DEVFNAME}
+	done
+	echo "done."
+fi
+
+# Rebuild the attribute cache for all devices.
+for DEVICE in ${DEVICES[@]}; do
+	DEVFNAME=${DEVICE##\/}	 
+	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_attr
+	TDEVFNAME=${DEVFNAME}.tmp
+
+	${SMARTCMD} -A ${DEVICE} > ${TDEVFNAME}
+	mv ${TDEVFNAME} ${DEVFNAME}
+done
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
