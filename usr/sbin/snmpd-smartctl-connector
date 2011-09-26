@@ -35,7 +35,7 @@ function get_request_oid
 
 function split_request_oid
 {	
-	# Splif off our BASE_OID to get a R[elative]OID. 
+	# Split off our BASE_OID to get a R[elative]OID. 
 	ROID=${OID#$BASE_OID}
 
 	# If the requested OID doesn't start with our base OID then we're done already.
