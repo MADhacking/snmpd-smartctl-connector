@@ -31,15 +31,17 @@ function get_request_oid
 {
 	# Read the OID this request is for
 	read OID
-	
+}
+
+function split_request_oid
+{	
 	# Splif off our BASE_OID to get a R[elative]OID. 
 	ROID=${OID#$BASE_OID}
-	[[ -n ${DEBUG} ]] && logger -p local1.info "${QUERY} request for OID: ${OID} ROID: ${ROID}"
 
 	# If the requested OID doesn't start with our base OID then we're done already.
 	if [[ ${ROID} == ${OID} ]]; then
 		echo "NONE"
-		[[ -n ${DEBUG} ]] && logger -p local1.warn "${QUERY} request for unknown OID: ${OID}"
+		[[ -n ${DEBUG} ]] && logger -p local1.warn "unknown base OID: ${OID}"
 		return
 	fi
 
@@ -48,28 +50,46 @@ function get_request_oid
 	RFA=(${ROID})
 	unset IFS
 
-	# Prepare R[equest]TYPE and R[equest]INDEX variables for easier use.
+	# Prepare R[equest]TYPE, R[equest]INDEX and A[rray]INDEX variables for easier use.
 	RTYPE=${RFA[0]}
-	RINDEX=$((${RFA[1]} - 1))
+	RINDEX=${RFA[1]}
+	AINDEX=$((${RINDEX} - 1))
+
+	[[ -n ${DEBUG} ]] && logger -p local1.info "split ROID: ${ROID} (and RTYPE: ${RTYPE} RINDEX: ${RINDEX}) from OID: ${OID}"
 }
 
 function handle_getnext
 {
-	# Read the OID this request is for
-	get_request_oid
-		
+	[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request for OID: ${OID}"
+	
+	split_request_oid
+	
 	# If the ROID starts with...
 	case ${RTYPE} in
 		0) # It is a base query so send the OID of the first index value
-		send_integer ${BASE_OID}1.1 1
+		OID=${BASE_OID}1.1
+		[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
+		handle_get
 		;;
 		
-		1) # It is an index query so send the next OID in the range
-		
-
-		*) # We don't know what this is!
-		echo "NONE"
-		[[ -n ${DEBUG} ]] && logger -p local1.warn "GETNEXT request for unknown OID: ${OID} (RTYPE out of range)"
+		*) # It is a normal query so...
+		# If the next index is in range send the next OID...
+		NINDEX=$((${RINDEX} + 1))
+		if (( ${NINDEX} <= ${#DEVICES[@]} )); then
+			OID=${BASE_OID}${RTYPE}.${NINDEX}
+			[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
+			handle_get
+		else
+			# ...otherwise send the next range if it is within this MIB or NONE
+			NTYPE=$((${RTYPE} + 1))
+			if (( ${NTYPE} < 15 )); then
+				OID=${BASE_OID}${NTYPE}.1
+				[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
+				handle_get
+			else
+				echo "NONE"
+			fi
+		fi
 		;;
 	esac
 }
@@ -77,65 +97,73 @@ function handle_getnext
 
 function handle_get
 {
-	# Read the OID this request is for
-	get_request_oid
+	[[ -n ${DEBUG} ]] && logger -p local1.info "GET request for OID: ${OID}"
+	
+	split_request_oid
 	
 	# If the ROID starts with...
 	case ${RTYPE} in
-		1) # It is an index request.
-		send_integer ${OID} ${RINDEX}
+		1) # It is an index request so...
+		# If the index is in range...
+		if (( ${RINDEX} <= ${#DEVICES[@]} )); then
+			# Send the OID and the index number.
+			send_integer ${OID} ${RINDEX}
+		else
+			# Send none.
+			echo "NONE"
+		fi
 		;;
 		
 		2) # It is for the mapped device path.
-		send_string ${OID} ${DEVICES[${RINDEX}]}
+		send_string ${OID} ${DEVICES[${AINDEX}]}
 		;;
 
 		3) # It is for the device model-family.
-		send_device_info ${OID} ${DEVICES[${RINDEX}]} "Model Family:"
+		send_device_info ${OID} ${DEVICES[${AINDEX}]} "Model Family:"
 		;;
 		
 		4) # It is for the device device-model.
-		send_device_info ${OID} ${DEVICES[${RINDEX}]} "Device Model:"
+		send_device_info ${OID} ${DEVICES[${AINDEX}]} "Device Model:"
 		;;
 		
 		5) # It is for the device serial number.
-		send_device_info ${OID} ${DEVICES[${RINDEX}]} "Serial Number:"
+		send_device_info ${OID} ${DEVICES[${AINDEX}]} "Serial Number:"
 		;;
 
 		6) # It is for the device user capacity.
-		send_device_info ${OID} ${DEVICES[${RINDEX}]} "User Capacity:"
+		send_device_info ${OID} ${DEVICES[${AINDEX}]} "User Capacity:"
 		;;
 
 		7) # It is for the device ATA version.
-		send_device_info ${OID} ${DEVICES[${RINDEX}]} "ATA Version is:"
+		send_device_info ${OID} ${DEVICES[${AINDEX}]} "ATA Version is:"
 		;;
 
 		8) # It is for the device temperature.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "Temperature_Celsius" R
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Temperature_Celsius" R
 		;;
 
 		9) # It is for the Reallocated Sector Count of this device.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "Reallocated_Sector_Ct" R
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Reallocated_Sector_Ct" R
 		;;
 
 		10) # It is for the Current Pending Sector count of this device.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "Current_Pending_Sector" R
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Current_Pending_Sector" R
 		;;
 
 		11) # It is for the Off-line Uncorrectable count of this device.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "Offline_Uncorrectable" R
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Offline_Uncorrectable" R
 		;;
 
 		12) # It is for the UDMA CRC Error count of this device.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "UDMA_CRC_Error_Count" R
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "UDMA_CRC_Error_Count" R
 		;;
 
 		13) # It is for the Seek Error Rate (lifetime) of this device.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "Seek_Error_Rate" L
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Seek_Error_Rate" L
 		;;
 
 		14) # It is for the Hardware ECC recovered (lifetime) of this device.
-		send_device_attr ${OID} ${DEVICES[${RINDEX}]} "Hardware_ECC_Recovered" L
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Hardware_ECC_Recovered" L
 		;;
 
 		*) # We don't know what this is!
@@ -245,17 +273,19 @@ while (( ${QUIT} == 0 )); do
 		;;
 		
 		# Handle QUIT or EXIT request
-		"quit"|"exit")
+		"quit"|"exit"|"")
 		echo "Bye"
 		exit
 		;;
 		
 		# Handle GET requests
 		"get")
+		get_request_oid
 		handle_get
 		;;
 
 		"getnext")
+		get_request_oid
 		handle_getnext
 		;;
 
