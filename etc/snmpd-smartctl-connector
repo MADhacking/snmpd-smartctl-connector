@@ -1,5 +1,5 @@
 # List of disk devices to monitor
-DEVICES=(/dev/sda /dev/sdb /dev/sdc /dev/sdd)
+# DEVICES=(/dev/sda /dev/sdb /dev/sdc /dev/sdd)
 
 # Path to cache directory
 CACHEDIR=/var/cache/snmp

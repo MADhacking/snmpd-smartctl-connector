@@ -82,7 +82,7 @@ function handle_getnext
 		else
 			# ...otherwise send the next range if it is within this MIB or NONE
 			NTYPE=$((${RTYPE} + 1))
-			if (( ${NTYPE} < 15 )); then
+			if (( ${NTYPE} < 16 )); then
 				OID=${BASE_OID}${NTYPE}.1
 				[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
 				handle_get
@@ -158,11 +158,15 @@ function handle_get
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "UDMA_CRC_Error_Count" R
 		;;
 
-		13) # It is for the Seek Error Rate (lifetime) of this device.
+		13) # It is for the Read Error Rate (lifetime) of this device.
+		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Read_Error_Rate" L
+		;;
+
+		14) # It is for the Seek Error Rate (lifetime) of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Seek_Error_Rate" L
 		;;
 
-		14) # It is for the Hardware ECC recovered (lifetime) of this device.
+		15) # It is for the Hardware ECC recovered (lifetime) of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Hardware_ECC_Recovered" L
 		;;
 
