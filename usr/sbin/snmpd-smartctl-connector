@@ -82,7 +82,7 @@ function handle_getnext
 		else
 			# ...otherwise send the next range if it is within this MIB or NONE
 			NTYPE=$((${RTYPE} + 1))
-			if (( ${NTYPE} < 16 )); then
+			if (( ${NTYPE} < 17 )); then
 				OID=${BASE_OID}${NTYPE}.1
 				[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
 				handle_get
@@ -138,35 +138,39 @@ function handle_get
 		send_device_info ${OID} ${DEVICES[${AINDEX}]} "ATA Version is:"
 		;;
 
-		8) # It is for the device temperature.
+		8) # It is for the overall SMART health state.
+		send_device_health ${OID} ${DEVICES[${AINDEX}]}
+		;;
+
+		9) # It is for the device temperature.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Temperature_Celsius" R
 		;;
 
-		9) # It is for the Reallocated Sector Count of this device.
+		10) # It is for the Reallocated Sector Count of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Reallocated_Sector_Ct" R
 		;;
 
-		10) # It is for the Current Pending Sector count of this device.
+		11) # It is for the Current Pending Sector count of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Current_Pending_Sector" R
 		;;
 
-		11) # It is for the Off-line Uncorrectable count of this device.
+		12) # It is for the Off-line Uncorrectable count of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Offline_Uncorrectable" R
 		;;
 
-		12) # It is for the UDMA CRC Error count of this device.
+		13) # It is for the UDMA CRC Error count of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "UDMA_CRC_Error_Count" R
 		;;
 
-		13) # It is for the Read Error Rate (lifetime) of this device.
+		14) # It is for the Read Error Rate (lifetime) of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Read_Error_Rate" L
 		;;
 
-		14) # It is for the Seek Error Rate (lifetime) of this device.
+		15) # It is for the Seek Error Rate (lifetime) of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Seek_Error_Rate" L
 		;;
 
-		15) # It is for the Hardware ECC recovered (lifetime) of this device.
+		16) # It is for the Hardware ECC recovered (lifetime) of this device.
 		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Hardware_ECC_Recovered" L
 		;;
 
@@ -188,6 +192,18 @@ function send_device_info
 	VALUE=$(grep "${3}" < ${DEVFNAME})
 	VALUE=${VALUE#${3}}
 	send_string ${1} "${VALUE}"
+}
+
+# Function to send device health - called: send_device_health OID DEVICE
+function send_device_health
+{
+	# Make the device info filename 
+	DEVFNAME=${2##\/}
+	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_state
+	
+	# Find the entry in above file
+	VALUES=($(grep "result:" < ${DEVFNAME}))
+	[[ "${VALUES[5]}" == "PASSED" ]] && send_boolean ${1} 1 || send_boolean ${1} 2  
 }
 
 # Function to send device attribute - called: send_device_attr OID DEVICE "Attribute String" R[aw]|L[ife]
@@ -218,6 +234,15 @@ function send_device_attr
 function send_integer
 {
 	[[ -n ${DEBUG} ]] && logger -p local1.warn "Sent ${1} INTEGER ${2}"
+	echo ${1}
+	echo "integer"
+	echo ${2}
+}
+
+# Helper function to send an integer - called: send_boolean OID value
+function send_boolean
+{
+	[[ -n ${DEBUG} ]] && logger -p local1.warn "Sent ${1} TruthValue ${2}"
 	echo ${1}
 	echo "integer"
 	echo ${2}

@@ -22,9 +22,11 @@ function versioninfo
 function helpscreen
 {
 	echo "Usage: ${CMDNAME} [OPTION]..."
-	echo "Automatically applies patches and copies files from the location specified in"
-	echo "${CFGFILE} or passed on the command line to the portage tree."
+	echo "Maintaines cache files of SMART data for configured devices."
 	echo
+	echo "  -i, --info-rebuild             force a rebuild of the info cache file for all"
+	echo "                                 devices in addtion to the normal attribute and"
+	echo "                                 health files"
 	echo "      --help                     display this help and exit"
     echo "      --version                  output version information and exit"
 }
@@ -46,6 +48,10 @@ CONFIG="/etc/snmpd-smartctl-connector"
 while (( $# > 0 ))
 do
 	case $1 in
+		-i|--info-rebuild)
+			INFO_REBUILD="YES"
+			shift 1
+		;;
 		--version)
 			versioninfo
 			exit
@@ -91,7 +97,20 @@ if [[ ! -z ${INFO_REBUILD} ]]; then
 	echo "done."
 fi
 
+# Rebuild the status cache for all devices.
+echo -n "Rebuilding state files..."
+for DEVICE in ${DEVICES[@]}; do
+	DEVFNAME=${DEVICE##\/}	 
+	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_state
+	TDEVFNAME=${DEVFNAME}.tmp
+
+	${SMARTCMD} -H ${DEVICE} > ${TDEVFNAME}
+	mv ${TDEVFNAME} ${DEVFNAME}
+done
+echo "done."
+
 # Rebuild the attribute cache for all devices.
+echo -n "Rebuilding attribute files..."
 for DEVICE in ${DEVICES[@]}; do
 	DEVFNAME=${DEVICE##\/}	 
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_attr
@@ -100,6 +119,7 @@ for DEVICE in ${DEVICES[@]}; do
 	${SMARTCMD} -A ${DEVICE} > ${TDEVFNAME}
 	mv ${TDEVFNAME} ${DEVFNAME}
 done
+echo "done."
 
 	
 
