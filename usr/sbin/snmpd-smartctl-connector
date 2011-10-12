@@ -1,189 +1,30 @@
-#!/bin/bash
+#!/bin/bash -u
 
-# Function to quit with error
-function die
+[[ -r /usr/lib/snmpd-connector-lib.sh ]] && source /usr/lib/snmpd-connector-lib.sh
+[[ ! -r /usr/lib/snmpd-connector-lib.sh ]] && echo "Unable to find /usr/lib/snmpd-connector-lib.sh" && exit 1
+
+function send_index
 {
-	logger -p local1.error "ERROR: ${1}"
-	echo "ERROR: ${1}" >&2
-	exit
-}
-
-# Functions to handle request types
-function handle_ping
-{
-	echo "PONG"
-}
-
-function handle_unknown
-{
-	echo "ERROR [Unknown Command]"
-}
-
-function handle_set
-{
-	read OID
-	read VALUE
-	echo "not-writable"
-	[[ -n ${DEBUG} ]] && logger -p local1.warn "Attempt to SET ${OID} to ${VALUE}"
-}
-
-function get_request_oid
-{
-	# Read the OID this request is for
-	read OID
-}
-
-function split_request_oid
-{	
-	# Split off our BASE_OID to get a R[elative]OID. 
-	ROID=${OID#$BASE_OID}
-
-	# If the requested OID doesn't start with our base OID then we're done already.
-	if [[ ${ROID} == ${OID} ]]; then
+	# If the index is in range...
+	if (( ${RINDEX} <= ${#DEVICES[@]} )); then
+		# Send the OID and the index number.
+		send_integer ${OID} ${RINDEX}
+	else
+		# Send none.
 		echo "NONE"
-		[[ -n ${DEBUG} ]] && logger -p local1.warn "unknown base OID: ${OID}"
-		return
 	fi
-
-	# Split the ROID around the dots to get the fields for this request to get a R[equest]F[ield]A[rray].
-	IFS="."
-	RFA=(${ROID})
-	unset IFS
-
-	# Prepare R[equest]TYPE, R[equest]INDEX and A[rray]INDEX variables for easier use.
-	RTYPE=${RFA[0]}
-	RINDEX=${RFA[1]}
-	AINDEX=$((${RINDEX} - 1))
-
-	[[ -n ${DEBUG} ]] && logger -p local1.info "split ROID: ${ROID} (and RTYPE: ${RTYPE} RINDEX: ${RINDEX}) from OID: ${OID}"
-}
-
-function handle_getnext
-{
-	[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request for OID: ${OID}"
-	
-	split_request_oid
-	
-	# If the ROID starts with...
-	case ${RTYPE} in
-		0) # It is a base query so send the OID of the first index value
-		OID=${BASE_OID}1.1
-		[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
-		handle_get
-		;;
-		
-		*) # It is a normal query so...
-		# If the next index is in range send the next OID...
-		NINDEX=$((${RINDEX} + 1))
-		if (( ${NINDEX} <= ${#DEVICES[@]} )); then
-			OID=${BASE_OID}${RTYPE}.${NINDEX}
-			[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
-			handle_get
-		else
-			# ...otherwise send the next range if it is within this MIB or NONE
-			NTYPE=$((${RTYPE} + 1))
-			if (( ${NTYPE} < 17 )); then
-				OID=${BASE_OID}${NTYPE}.1
-				[[ -n ${DEBUG} ]] && logger -p local1.info "GETNEXT request passed to handle_get with new OID: ${OID}"
-				handle_get
-			else
-				echo "NONE"
-			fi
-		fi
-		;;
-	esac
-}
-
-
-function handle_get
-{
-	[[ -n ${DEBUG} ]] && logger -p local1.info "GET request for OID: ${OID}"
-	
-	split_request_oid
-	
-	# If the ROID starts with...
-	case ${RTYPE} in
-		1) # It is an index request so...
-		# If the index is in range...
-		if (( ${RINDEX} <= ${#DEVICES[@]} )); then
-			# Send the OID and the index number.
-			send_integer ${OID} ${RINDEX}
-		else
-			# Send none.
-			echo "NONE"
-		fi
-		;;
-		
-		2) # It is for the mapped device path.
-		send_string ${OID} ${DEVICES[${AINDEX}]}
-		;;
-
-		3) # It is for the device model-family.
-		send_device_info ${OID} ${DEVICES[${AINDEX}]} "Model Family:"
-		;;
-		
-		4) # It is for the device device-model.
-		send_device_info ${OID} ${DEVICES[${AINDEX}]} "Device Model:"
-		;;
-		
-		5) # It is for the device serial number.
-		send_device_info ${OID} ${DEVICES[${AINDEX}]} "Serial Number:"
-		;;
-
-		6) # It is for the device user capacity.
-		send_device_info ${OID} ${DEVICES[${AINDEX}]} "User Capacity:"
-		;;
-
-		7) # It is for the device ATA version.
-		send_device_info ${OID} ${DEVICES[${AINDEX}]} "ATA Version is:"
-		;;
-
-		8) # It is for the overall SMART health state.
-		send_device_health ${OID} ${DEVICES[${AINDEX}]}
-		;;
-
-		9) # It is for the device temperature.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Temperature_Celsius" R
-		;;
-
-		10) # It is for the Reallocated Sector Count of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Reallocated_Sector_Ct" R
-		;;
-
-		11) # It is for the Current Pending Sector count of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Current_Pending_Sector" R
-		;;
-
-		12) # It is for the Off-line Uncorrectable count of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Offline_Uncorrectable" R
-		;;
-
-		13) # It is for the UDMA CRC Error count of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "UDMA_CRC_Error_Count" R
-		;;
-
-		14) # It is for the Read Error Rate (lifetime) of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Read_Error_Rate" L
-		;;
-
-		15) # It is for the Seek Error Rate (lifetime) of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Seek_Error_Rate" L
-		;;
-
-		16) # It is for the Hardware ECC recovered (lifetime) of this device.
-		send_device_attr ${OID} ${DEVICES[${AINDEX}]} "Hardware_ECC_Recovered" L
-		;;
-
-		*) # We don't know what this is!
-		echo "NONE"
-		[[ -n ${DEBUG} ]] && logger -p local1.warn "GET request for unknown OID: ${OID} (RTYPE out of range)"
-		;;
-	esac
 }
 
 # Function to send device info - called: send_device_info OID DEVICE "Info String"
+#
+#	$1 - The OID to send before this data
+#	$2 - The DEVICE to send data for
+#	$3 - The STRING to search for
+#
 function send_device_info
 {
+	local DEVFNAME VALUE
+	
 	# Make the device info filename 
 	DEVFNAME=${2##\/}
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
@@ -194,9 +35,15 @@ function send_device_info
 	send_string ${1} "${VALUE}"
 }
 
-# Function to send device health - called: send_device_health OID DEVICE
-function send_device_health
+# Function to send device health - called: send_device_hlth OID DEVICE
+#
+#	$1 - The OID to send before this data
+#	$2 - The DEVICE to send data for
+#
+function send_device_hlth
 {
+	local DEVFNAME VALUES
+	
 	# Make the device info filename 
 	DEVFNAME=${2##\/}
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_state
@@ -207,8 +54,16 @@ function send_device_health
 }
 
 # Function to send device attribute - called: send_device_attr OID DEVICE "Attribute String" R[aw]|L[ife]
+#
+#	$1 - The OID to send before this data
+#	$2 - The DEVICE to send data for
+#	$3 - The STRING to search for
+#	$4 - R to send RAW value, L to send LIFETIME value
+#
 function send_device_attr
 {
+	local DEVFNAME VALUES
+	
 	# Make the device info filename 
 	DEVFNAME=${2##\/}
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_attr
@@ -221,49 +76,13 @@ function send_device_attr
 		;;
 		
 		"L")
-		send_gauge ${1} $((${VALUES[3]##0} -  ${VALUES[5]##0}))
+		send_gauge ${1} $((${VALUES[3]##0} - ${VALUES[5]##0}))
 		;;
 		
 		*)
 		send_gauge ${1} -1		
 		;;	
 	esac
-}
-
-# Helper function to send an integer - called: send_integer OID value
-function send_integer
-{
-	[[ -n ${DEBUG} ]] && logger -p local1.warn "Sent ${1} INTEGER ${2}"
-	echo ${1}
-	echo "integer"
-	echo ${2}
-}
-
-# Helper function to send an integer - called: send_boolean OID value
-function send_boolean
-{
-	[[ -n ${DEBUG} ]] && logger -p local1.warn "Sent ${1} TruthValue ${2}"
-	echo ${1}
-	echo "integer"
-	echo ${2}
-}
-
-# Helper function to send a string - called: send_string OID value
-function send_string
-{
-	[[ -n ${DEBUG} ]] && logger -p local1.warn "Sent ${1} STRING ${2}"
-	echo ${1}
-	echo "string"
-	echo ${2}
-}
-
-# Helper function to send a gauge - called: send_gauge OID value
-function send_gauge
-{
-	[[ -n ${DEBUG} ]] && logger -p local1.warn "Sent ${1} GAUGE ${2}"
-	echo ${1}
-	echo "gauge"
-	echo ${2}
 }
 
 # Init local vars
@@ -277,7 +96,7 @@ CONFIG="/etc/snmpd-smartctl-connector"
 [[ -z ${DEVICES} ]] && die "No DEVICES configured in ${CONFIG}"
 [[ -z ${CACHEDIR} ]] && die "No CACHEDIR configured in ${CONFIG}"
 [[ ! -d ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not a directory"
-[[ ! -w ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not a writable by $(whoami)"
+[[ ! -w ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not writable by $(whoami)"
 [[ -z SMARTCMD ]] && die "No SMARTCMD configured in ${CONFIG}"
 [[ -z SNMP_TRANSLATE ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
 
@@ -286,47 +105,44 @@ BASE_MIB="SMARTCTL-MIB::smartCtlTable"
 BASE_OID="$(${SNMP_TRANSLATE} -On ${BASE_MIB}).1."
 (( $? != 0 )) && die "Unable to resolve base OID from ${BASE_MIB}"
 
-# Loop until we are instructed to quit
-QUIT=0
-while (( ${QUIT} == 0 )); do
+# Declare the function table.
+FTABLE[1]="send_index"											# It is an index request.
+FTABLE[2]="send_string %o %d" 									# It is for the mapped device path.
+FTABLE[3]="send_device_info %o %d 'Model Family:'" 				# It is for the device model-family.
+FTABLE[4]="send_device_info %o %d 'Device Model:'"				# It is for the device device-model.
+FTABLE[5]="send_device_info %o %d 'Serial Number:'" 			# It is for the device serial number.
+FTABLE[6]="send_device_info %o %d 'User Capacity:'" 			# It is for the device user capacity.
+FTABLE[7]="send_device_info %o %d 'ATA Version is:'"			# It is for the device ATA version.
+FTABLE[8]="send_device_hlth %o %d"								# It is for the overall SMART health state.
+FTABLE[9]="send_device_attr %o %d 'Temperature_Celsius' R" 		# It is for the device temperature.
+FTABLE[10]="send_device_attr %o %d 'Reallocated_Sector_Ct' R" 	# It is for the Reallocated Sector Count of this device.
+FTABLE[11]="send_device_attr %o %d 'Current_Pending_Sector' R"	# It is for the Current Pending Sector count of this device.
+FTABLE[12]="send_device_attr %o %d 'Offline_Uncorrectable' R" 	# It is for the Off-line Uncorrectable count of this device.
+FTABLE[13]="send_device_attr %o %d 'UDMA_CRC_Error_Count' R" 	# It is for the UDMA CRC Error count of this device.
+FTABLE[14]="send_device_attr %o %d 'Read_Error_Rate' L" 		# It is for the Read Error Rate (lifetime) of this device.
+FTABLE[15]="send_device_attr %o %d 'Seek_Error_Rate' L" 		# It is for the Seek Error Rate (lifetime) of this device.
+FTABLE[16]="send_device_attr %o %d 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
 
-	# Get the SNMP query type (lower case)
-	read QUERY
-	QUERY=${QUERY,,}
+# Define the function to perform string replacement
+#
+#	@param	$1 - The starting string
+#	@param	$2 - The R[equest]TYPE
+#	@param	$3 - The R[equest]INDEX
+#	@return	$4 - The resulting string
+#
+# 	%o does not require handling
+#
+function do_string_replace
+{
+	local TEMP="${1}"
+	local AINDEX=$((${3} - 1))
+
+	# Replace %d with the device path		
+	TEMP="${TEMP/\%d/${DEVICES[${AINDEX}]}}"
 	
-	# What kind of request is this?
-	case ${QUERY} in
-		# Handle PING request
-		"ping")
-		handle_ping
-		;;
-		
-		# Handle QUIT or EXIT request
-		"quit"|"exit"|"")
-		echo "Bye"
-		exit
-		;;
-		
-		# Handle GET requests
-		"get")
-		get_request_oid
-		handle_get
-		;;
+	eval $4="\"${TEMP}\""
+}
 
-		"getnext")
-		get_request_oid
-		handle_getnext
-		;;
+# Start the loop
+the_loop
 
-		# Handle SET requests
-		"set")
-		handle_set
-		;;
-
-		# Handle unknown commands
-		*)
-		handle_unknown
-		;;
-	esac
-	
-done
