@@ -50,7 +50,7 @@ function send_device_hlth
 	
 	# Find the entry in above file
 	VALUES=($(grep "result:" < ${DEVFNAME}))
-	[[ "${VALUES[5]}" == "PASSED" ]] && send_boolean ${1} 1 || send_boolean ${1} 2  
+	[[ "${VALUES[5]}" == "PASSED" ]] && send_boolean ${1} "T" || send_boolean ${1} "F" 
 }
 
 # Function to send device attribute - called: send_device_attr OID DEVICE "Attribute String" R[aw]|L[ife]
@@ -88,6 +88,7 @@ function send_device_attr
 # Init local vars
 CMDNAME=$(basename ${0})
 CONFIG="/etc/snmpd-smartctl-connector"
+DEBUG=""
 
 # Read the config file if we can
 [[ -r ${CONFIG} ]] && source ${CONFIG} || die "Unable to read configuration file [${CONFIG}]"
