@@ -89,6 +89,9 @@ function send_device_attr
 CMDNAME=$(basename ${0})
 CONFIG="/etc/snmpd-smartctl-connector"
 DEBUG=""
+DEVICES=""
+CACHEDIR=""
+SNMP_TRANSLATE=""
 
 # Read the config file if we can
 [[ -r ${CONFIG} ]] && source ${CONFIG} || die "Unable to read configuration file [${CONFIG}]"
@@ -98,8 +101,7 @@ DEBUG=""
 [[ -z ${CACHEDIR} ]] && die "No CACHEDIR configured in ${CONFIG}"
 [[ ! -d ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not a directory"
 [[ ! -w ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not writable by $(whoami)"
-[[ -z SMARTCMD ]] && die "No SMARTCMD configured in ${CONFIG}"
-[[ -z SNMP_TRANSLATE ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
+[[ -z ${SNMP_TRANSLATE} ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
 
 # Get base OID
 BASE_MIB="SMARTCTL-MIB::smartCtlTable"
