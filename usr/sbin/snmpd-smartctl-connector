@@ -41,13 +41,17 @@ function get_device_file_basepath
 function send_index
 {
 	# If the index is in range...
-	if (( ${2} <= ${#DEVICES[@]} )); then
-		# Send the OID and the index number.
-		send_integer ${1} ${2}
-	else
-		# Send none.
-		echo "NONE"
+	if (( $# > 1 )); then
+		if (( ${2} <= ${#DEVICES[@]} )); then
+			# Send the OID and the index number.
+			send_integer ${1} ${2}
+			return
+		fi
 	fi
+
+	# Send the OID and NONE.
+	echo ${1}
+	echo "NONE"
 }
 
 # Function to send the device path
@@ -163,6 +167,7 @@ function get_next_index
 CMDNAME=$(basename ${0})
 CONFIG="/etc/snmpd-smartctl-connector"
 DEBUG=""
+LOGGING=""
 DEVICES=""
 CACHEDIR=""
 SNMP_TRANSLATE=""
