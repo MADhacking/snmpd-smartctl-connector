@@ -1,52 +1,102 @@
 #!/bin/bash -u
 
+# Include snmpd-connector-lib.sh or die.
 [[ ! -r /usr/lib/snmpd-connector-lib.sh ]] && echo "Unable to find /usr/lib/snmpd-connector-lib.sh" && exit 1
 source /usr/lib/snmpd-connector-lib.sh
 
+# Helper function to get the device path from the devices array using a 1 based index
+#
+#	@in_param	$1 - The 1 based index of the device
+#	@out_param	$2 - The path of this device
+#
+function get_device_path
+{
+	local AINDEX=$((${1} - 1))
+	eval $2=${DEVICES[${AINDEX}]}	
+}
+
+# Helper function to get the device file base path from the devices array using a 1 based index
+#
+#	@in_param	$1 - The 1 based index of the device
+#	@out_param	$2 - The path of this device
+#
+function get_device_file_basepath
+{
+	local DEVPATH
+	
+	# Make the device info filename
+	get_device_path ${1} DEVPATH
+	
+	DEVFILE=${DEVPATH##\/}
+	DEVFILE=${CACHEDIR}/${DEVFILE//\//_}
+	
+	eval $2=${DEVFILE}
+}
+
+# Function to send the index value
+#
+#	@in_param	$1 - The OID to send before this data
+#	@in_param	$2 - The base OID this is a request for
+#	@in_param	$3 - The index value
+#
 function send_index
 {
 	# If the index is in range...
-	if (( ${RINDEX} <= ${#DEVICES[@]} )); then
+	if (( ${3} <= ${#DEVICES[@]} )); then
 		# Send the OID and the index number.
-		send_integer ${OID} ${RINDEX}
+		send_integer ${2} ${3}
 	else
 		# Send none.
 		echo "NONE"
 	fi
 }
 
+# Function to send the device path
+#
+#	@in_param	$1 - The OID to send before this data
+#	@in_param	$2 - The base OID this is a request for
+#	@in_param	$3 - The index value
+#
+function send_device_path
+{
+	local DEVPATH 
+	get_device_path ${3} DEVPATH
+	send_string ${1} ${DEVPATH}
+}
+
 # Function to send device info - called: send_device_info OID DEVICE "Info String"
 #
-#	$1 - The OID to send before this data
-#	$2 - The DEVICE to send data for
-#	$3 - The STRING to search for
-#
+#	@in_param	$1 - The STRING to search for
+#	@in_param	$2 - The OID to send before this data
+#	@in_param	$3 - The base OID this is a request for
+#	@in_param	$4 - The index value
 function send_device_info
 {
 	local DEVFNAME VALUE
 	
 	# Make the device info filename 
-	DEVFNAME=${2##\/}
-	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
+	get_device_file_basepath ${4} DEVFNAME
+	DEVFNAME="${DEVFNAME}_info"
 	
 	# Find the entry in above file
-	VALUE=$(grep "${3}" < ${DEVFNAME})
-	VALUE=${VALUE#${3}}
-	send_string ${1} "${VALUE}"
+	VALUE=$(grep "${1}" < ${DEVFNAME})
+	VALUE=${VALUE#${1}}
+	send_string ${2} "${VALUE}"
 }
 
 # Function to send device health - called: send_device_hlth OID DEVICE
 #
-#	$1 - The OID to send before this data
-#	$2 - The DEVICE to send data for
+#	@in_param	$1 - The OID to send before this data
+#	@in_param	$2 - The base OID this is a request for
+#	@in_param	$3 - The index value
 #
 function send_device_hlth
 {
 	local DEVFNAME VALUES
 	
 	# Make the device info filename 
-	DEVFNAME=${2##\/}
-	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_state
+	get_device_file_basepath ${3} DEVFNAME
+	DEVFNAME="${DEVFNAME}_state"
 	
 	# Find the entry in above file
 	VALUES=($(grep "result:" < ${DEVFNAME}))
@@ -55,32 +105,32 @@ function send_device_hlth
 
 # Function to send device attribute - called: send_device_attr OID DEVICE "Attribute String" R[aw]|L[ife]
 #
-#	$1 - The OID to send before this data
-#	$2 - The DEVICE to send data for
-#	$3 - The STRING to search for
-#	$4 - R to send RAW value, L to send LIFETIME value
-#
+#	@in_param	$1 - The STRING to search for
+#	@in_param	$2 - R to send RAW value, L to send LIFETIME value
+#	@in_param	$3 - The OID to send before this data
+#	@in_param	$4 - The base OID this is a request for
+#	@in_param	$5 - The index value
 function send_device_attr
 {
 	local DEVFNAME VALUES
 	
 	# Make the device info filename 
-	DEVFNAME=${2##\/}
-	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_attr
+	get_device_file_basepath ${5} DEVFNAME
+	DEVFNAME="${DEVFNAME}_attr"
 	
 	# Find the entry in above file
-	VALUES=($(grep "${3}" < ${DEVFNAME}))
-	case ${4} in
+	VALUES=($(grep "${1}" < ${DEVFNAME}))
+	case ${2} in
 		"R")
-		send_gauge ${1} ${VALUES[9]}
+		send_gauge ${3} ${VALUES[9]}
 		;;
 		
 		"L")
-		send_gauge ${1} $((${VALUES[3]##0} - ${VALUES[5]##0}))
+		send_gauge ${3} $((${VALUES[3]##0} - ${VALUES[5]##0}))
 		;;
 		
 		*)
-		send_gauge ${1} -1		
+		send_gauge ${3} -1		
 		;;	
 	esac
 }
@@ -97,55 +147,38 @@ SNMP_TRANSLATE=""
 [[ -r ${CONFIG} ]] && source ${CONFIG} || die "Unable to read configuration file [${CONFIG}]"
 
 # Check for config values.
-[[ -z ${DEVICES} ]] && die "No DEVICES configured in ${CONFIG}"
-[[ -z ${CACHEDIR} ]] && die "No CACHEDIR configured in ${CONFIG}"
-[[ ! -d ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not a directory"
-[[ ! -w ${CACHEDIR} ]] && die "Cache directory [${CACHEDIR}] is not writable by $(whoami)"
-[[ -z ${SNMP_TRANSLATE} ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
+[[ -z "${DEVICES}" ]] && die "No DEVICES configured in ${CONFIG}"
+[[ -z "${CACHEDIR}" ]] && die "No CACHEDIR configured in ${CONFIG}"
+[[ ! -d "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not a directory"
+[[ ! -w "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not writable by $(whoami)"
+[[ -z "${SNMP_TRANSLATE}" ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
 
 # Get base OID
-BASE_MIB="SMARTCTL-MIB::smartCtlTable"
-BASE_OID="$(${SNMP_TRANSLATE} -On ${BASE_MIB}).1."
-(( $? != 0 )) && die "Unable to resolve base OID from ${BASE_MIB}"
+BASE_MIB="SMARTCTL-MIB::smartCtl"
+
+# Declare the root table
+RTABLE[2]="handle_table_get ETABLE"
+
+# Declare the E[ntry]TABLE
+ETABLE[1]="handle_table_entry_get FTABLE"
 
 # Declare the function table.
-FTABLE[1]="send_index"											# It is an index request.
-FTABLE[2]="send_string %o %d" 									# It is for the mapped device path.
-FTABLE[3]="send_device_info %o %d 'Model Family:'" 				# It is for the device model-family.
-FTABLE[4]="send_device_info %o %d 'Device Model:'"				# It is for the device device-model.
-FTABLE[5]="send_device_info %o %d 'Serial Number:'" 			# It is for the device serial number.
-FTABLE[6]="send_device_info %o %d 'User Capacity:'" 			# It is for the device user capacity.
-FTABLE[7]="send_device_info %o %d 'ATA Version is:'"			# It is for the device ATA version.
-FTABLE[8]="send_device_hlth %o %d"								# It is for the overall SMART health state.
-FTABLE[9]="send_device_attr %o %d 'Temperature_Celsius' R" 		# It is for the device temperature.
-FTABLE[10]="send_device_attr %o %d 'Reallocated_Sector_Ct' R" 	# It is for the Reallocated Sector Count of this device.
-FTABLE[11]="send_device_attr %o %d 'Current_Pending_Sector' R"	# It is for the Current Pending Sector count of this device.
-FTABLE[12]="send_device_attr %o %d 'Offline_Uncorrectable' R" 	# It is for the Off-line Uncorrectable count of this device.
-FTABLE[13]="send_device_attr %o %d 'UDMA_CRC_Error_Count' R" 	# It is for the UDMA CRC Error count of this device.
-FTABLE[14]="send_device_attr %o %d 'Read_Error_Rate' L" 		# It is for the Read Error Rate (lifetime) of this device.
-FTABLE[15]="send_device_attr %o %d 'Seek_Error_Rate' L" 		# It is for the Seek Error Rate (lifetime) of this device.
-FTABLE[16]="send_device_attr %o %d 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
-
-# Define the function to perform string replacement
-#
-#	@param	$1 - The starting string
-#	@param	$2 - The R[equest]TYPE
-#	@param	$3 - The R[equest]INDEX
-#	@return	$4 - The resulting string
-#
-# 	%o does not require handling
-#
-function do_string_replace
-{
-	local TEMP="${1}"
-	local AINDEX=$((${3} - 1))
-
-	# Replace %d with the device path		
-	TEMP="${TEMP/\%d/${DEVICES[${AINDEX}]}}"
-	
-	eval $4="\"${TEMP}\""
-}
+FTABLE[1]="send_index"										# It is an index request.
+FTABLE[2]="send_device_path" 								# It is for the mapped device path.
+FTABLE[3]="send_device_info 'Model Family:'" 				# It is for the device model-family.
+FTABLE[4]="send_device_info 'Device Model:'"				# It is for the device device-model.
+FTABLE[5]="send_device_info 'Serial Number:'" 				# It is for the device serial number.
+FTABLE[6]="send_device_info 'User Capacity:'" 				# It is for the device user capacity.
+FTABLE[7]="send_device_info 'ATA Version is:'"				# It is for the device ATA version.
+FTABLE[8]="send_device_hlth"								# It is for the overall SMART health state.
+FTABLE[9]="send_device_attr 'Temperature_Celsius' R" 		# It is for the device temperature.
+FTABLE[10]="send_device_attr 'Reallocated_Sector_Ct' R" 	# It is for the Reallocated Sector Count of this device.
+FTABLE[11]="send_device_attr 'Current_Pending_Sector' R"	# It is for the Current Pending Sector count of this device.
+FTABLE[12]="send_device_attr 'Offline_Uncorrectable' R" 	# It is for the Off-line Uncorrectable count of this device.
+FTABLE[13]="send_device_attr 'UDMA_CRC_Error_Count' R" 		# It is for the UDMA CRC Error count of this device.
+FTABLE[14]="send_device_attr 'Read_Error_Rate' L" 			# It is for the Read Error Rate (lifetime) of this device.
+FTABLE[15]="send_device_attr 'Seek_Error_Rate' L"	 		# It is for the Seek Error Rate (lifetime) of this device.
+FTABLE[16]="send_device_attr 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
 
 # Start the loop
 the_loop
-
