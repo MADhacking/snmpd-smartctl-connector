@@ -145,16 +145,23 @@ function get_next_index
 {
 	debug_echo "get_next_index : ${@}"
 	
-	# If we still have more than one element or less than one element in the 
-	# request array then something is wrong so log an error and return -1.
-	if (( $# != 2 )); then
-		error_echo "get_next_index: called with wrong number of request array elements!"
-		return -1
+	# If we still have more than one element in the request array then something
+	# is wrong so log an error and return 0.
+	if (( $# > 2 )); then
+		error_echo "get_next_index: called with $(( $# - 1 )) request array elements!"
+		return 0
 	fi
+
+	# If we passed an index...
+	if (( $# > 1 )); then
+		# If the passed index is less than the number of devices then return it +1,
+		# otherwise return 0 to indicate that the index would be out of range. 
+		(( ${2} < ${#DEVICES[@]} )) && return $(( ${2} + 1 )) || return 0 
+	fi	
 	
-	# If the passed index is less than the number of devices then return it +1,
-	# otherwise return 0 to indicate that the index would be out of range. 
-	(( ${2} < ${#DEVICES[@]} )) && return $(( ${2} + 1 )) || return 0 
+	# If we got this far then we were not passed an index so return the first
+	# available index.
+	return 1
 }
 
 # Init local vars
