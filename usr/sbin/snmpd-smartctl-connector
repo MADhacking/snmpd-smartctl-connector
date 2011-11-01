@@ -110,6 +110,7 @@ function send_device_hlth
 #	@in_param	$3 - The OID to send before this data
 #	@in_param	$4 - The base OID this is a request for
 #	@in_param	$5 - The index value
+#
 function send_device_attr
 {
 	local DEVFNAME VALUES
@@ -133,6 +134,27 @@ function send_device_attr
 		send_gauge ${3} -1		
 		;;	
 	esac
+}
+
+# Function to get the next index value
+#
+#	@in_param	$2 - The base OID this is a request for
+#	@in_param	$+ - An array containing the request elements
+#
+function get_next_index
+{
+	debug_echo "get_next_index : ${@}"
+	
+	# If we still have more than one element or less than one element in the 
+	# request array then something is wrong so log an error and return -1.
+	if (( $# != 2 )); then
+		error_echo "get_next_index: called with wrong number of request array elements!"
+		return -1
+	fi
+	
+	# If the passed index is less than the number of devices then return it +1,
+	# otherwise return 0 to indicate that the index would be out of range. 
+	(( ${2} < ${#DEVICES[@]} )) && return $(( ${2} + 1 )) || return 0 
 }
 
 # Init local vars
@@ -163,6 +185,7 @@ RTABLE[2]="#ETABLE"
 ETABLE[1]="#FTABLE"
 
 # Declare the function table.
+FTABLE[0]="get_next_index"									# Internal function to get next index
 FTABLE[1]="send_index"										# It is an index request.
 FTABLE[2]="send_device_path" 								# It is for the mapped device path.
 FTABLE[3]="send_device_info 'Model Family:'" 				# It is for the device model-family.
