@@ -36,15 +36,14 @@ function get_device_file_basepath
 # Function to send the index value
 #
 #	@in_param	$1 - The OID to send before this data
-#	@in_param	$2 - The base OID this is a request for
-#	@in_param	$3 - The index value
+#	@in_param	$2 - The index value
 #
 function send_index
 {
 	# If the index is in range...
-	if (( ${3} <= ${#DEVICES[@]} )); then
+	if (( ${2} <= ${#DEVICES[@]} )); then
 		# Send the OID and the index number.
-		send_integer ${2} ${3}
+		send_integer ${1} ${2}
 	else
 		# Send none.
 		echo "NONE"
@@ -54,13 +53,12 @@ function send_index
 # Function to send the device path
 #
 #	@in_param	$1 - The OID to send before this data
-#	@in_param	$2 - The base OID this is a request for
-#	@in_param	$3 - The index value
+#	@in_param	$2 - The index value
 #
 function send_device_path
 {
 	local DEVPATH 
-	get_device_path ${3} DEVPATH
+	get_device_path ${2} DEVPATH
 	send_string ${1} ${DEVPATH}
 }
 
@@ -68,14 +66,13 @@ function send_device_path
 #
 #	@in_param	$1 - The STRING to search for
 #	@in_param	$2 - The OID to send before this data
-#	@in_param	$3 - The base OID this is a request for
-#	@in_param	$4 - The index value
+#	@in_param	$3 - The index value
 function send_device_info
 {
 	local DEVFNAME VALUE
 	
 	# Make the device info filename 
-	get_device_file_basepath ${4} DEVFNAME
+	get_device_file_basepath ${3} DEVFNAME
 	DEVFNAME="${DEVFNAME}_info"
 	
 	# Find the entry in above file
@@ -87,15 +84,14 @@ function send_device_info
 # Function to send device health - called: send_device_hlth OID DEVICE
 #
 #	@in_param	$1 - The OID to send before this data
-#	@in_param	$2 - The base OID this is a request for
-#	@in_param	$3 - The index value
+#	@in_param	$2 - The index value
 #
 function send_device_hlth
 {
 	local DEVFNAME VALUES
 	
 	# Make the device info filename 
-	get_device_file_basepath ${3} DEVFNAME
+	get_device_file_basepath ${2} DEVFNAME
 	DEVFNAME="${DEVFNAME}_state"
 	
 	# Find the entry in above file
@@ -108,15 +104,14 @@ function send_device_hlth
 #	@in_param	$1 - The STRING to search for
 #	@in_param	$2 - R to send RAW value, L to send LIFETIME value
 #	@in_param	$3 - The OID to send before this data
-#	@in_param	$4 - The base OID this is a request for
-#	@in_param	$5 - The index value
+#	@in_param	$4 - The index value
 #
 function send_device_attr
 {
 	local DEVFNAME VALUES
 	
 	# Make the device info filename 
-	get_device_file_basepath ${5} DEVFNAME
+	get_device_file_basepath ${4} DEVFNAME
 	DEVFNAME="${DEVFNAME}_attr"
 	
 	# Find the entry in above file
