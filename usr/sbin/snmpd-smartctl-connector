@@ -157,10 +157,10 @@ SNMP_TRANSLATE=""
 BASE_MIB="SMARTCTL-MIB::smartCtl"
 
 # Declare the root table
-RTABLE[2]="handle_table_get ETABLE"
+RTABLE[2]="#ETABLE"
 
 # Declare the E[ntry]TABLE
-ETABLE[1]="handle_table_entry_get FTABLE"
+ETABLE[1]="#FTABLE"
 
 # Declare the function table.
 FTABLE[1]="send_index"										# It is an index request.
