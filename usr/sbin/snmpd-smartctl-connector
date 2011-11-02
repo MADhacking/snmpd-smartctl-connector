@@ -22,7 +22,7 @@ function get_device_path
 #
 function get_device_file_basepath
 {
-	local DEVPATH
+	local DEVPATH DEVFILE
 	
 	# Make the device info filename
 	get_device_path ${1} DEVPATH
@@ -50,8 +50,7 @@ function send_index
 	fi
 
 	# Send the OID and NONE.
-	echo ${1}
-	echo "NONE"
+	send_none ${1}
 }
 
 # Function to send the device path
@@ -142,12 +141,15 @@ function send_device_attr
 #
 function get_next_index
 {
-	debug_echo "get_next_index : ${@}"
+	local RETVAL
+	
+	debug_function_enter "get_next_index" ${@}
 	
 	# If we still have more than one element in the request array then something
 	# is wrong so log an error and return 0.
 	if (( $# > 2 )); then
 		error_echo "get_next_index: called with $(( $# - 1 )) request array elements!"
+		debug_function_return 0
 		return 0
 	fi
 
@@ -155,11 +157,22 @@ function get_next_index
 	if (( $# > 1 )); then
 		# If the passed index is less than the number of devices then return it +1,
 		# otherwise return 0 to indicate that the index would be out of range. 
-		(( ${2} < ${#DEVICES[@]} )) && return $(( ${2} + 1 )) || return 0 
+		if (( ${2} < ${#DEVICES[@]} )); then
+			RETVAL=$(( ${2} + 1 ))
+			debug_echo "next index is in range, returning ${RETVAL}"
+			debug_function_return ${RETVAL}
+			return ${RETVAL}
+		else
+			debug_echo "next index would be out of range, returning zero"
+			debug_function_return 0
+			return 0
+		fi 
 	fi	
 	
 	# If we got this far then we were not passed an index so return the first
 	# available index.
+	debug_echo "no index supplied, returning first index"
+	debug_function_return 1
 	return 1
 }
 
@@ -179,10 +192,10 @@ SNMP_TRANSLATE=""
 [[ -z "${DEVICES}" ]] && die "No DEVICES configured in ${CONFIG}"
 [[ -z "${CACHEDIR}" ]] && die "No CACHEDIR configured in ${CONFIG}"
 [[ ! -d "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not a directory"
-[[ ! -w "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not writable by $(whoami)"
+[[ ! -r "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not readable by $(whoami)"
 [[ -z "${SNMP_TRANSLATE}" ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
 
-# Get base OID
+# Configure base address
 BASE_MIB="SMARTCTL-MIB::smartCtl"
 
 # Declare the root table
