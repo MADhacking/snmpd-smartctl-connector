@@ -72,9 +72,9 @@ done
 [[ -z ${CACHEDIR} ]] && error_exit "No CACHEDIR defined in $CONFIG" 3
 [[ -z ${SMARTCMD} ]] && error_exit "No SMARTCMD defined in $CONFIG" 4
 
-# Check that the cache direcroty exists and is writable
-[[ ! -d ${CACHEDIR} ]] && error_exit "Cache direcroty [$CACHEDIR] does not exist" 5
-[[ ! -w ${CACHEDIR} ]] && error_exit "Cache direcroty [$CACHEDIR] is not writable" 6
+# Check that the cache directory exists and is writable
+[[ ! -d ${CACHEDIR} ]] && error_exit "Cache directory [$CACHEDIR] does not exist" 5
+[[ ! -w ${CACHEDIR} ]] && error_exit "Cache directory [$CACHEDIR] is not writable" 6
 
 # Check that the info cache exists for all devices...
 for DEVICE in ${DEVICES[@]}; do
@@ -120,28 +120,3 @@ for DEVICE in ${DEVICES[@]}; do
 	mv ${TDEVFNAME} ${DEVFNAME}
 done
 echo "done."
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
