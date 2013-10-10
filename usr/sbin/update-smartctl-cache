@@ -94,7 +94,7 @@ done
 # If the INFO_REBUILD flag is set then completely clean the cache and rebuild the info files for all devices.
 if [[ ! -z ${INFO_REBUILD} ]]; then
 	echo -n "Cleaning cache files..."
-	rm ${CACHEDIR}/*
+	rm ${CACHEDIR}/* &> /dev/null 
 	echo "done."
 	echo -n "Rebuilding info files..."
 	for DEVICE in ${DEVICES[@]}; do
