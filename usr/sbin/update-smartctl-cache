@@ -25,7 +25,7 @@ function helpscreen
 	echo "Maintaines cache files of SMART data for configured devices."
 	echo
 	echo "  -i, --info-rebuild             force a rebuild of the info cache file for all"
-	echo "                                 devices in addtion to the normal attribute and"
+	echo "                                 devices in addition to the normal attribute and"
 	echo "                                 health files"
 	echo "      --help                     display this help and exit"
     echo "      --version                  output version information and exit"
@@ -73,7 +73,9 @@ done
 [[ -z ${SMARTCMD} ]] && error_exit "No SMARTCMD defined in $CONFIG" 4
 
 # Check that the cache directory exists and is writable
-[[ ! -d ${CACHEDIR} ]] && error_exit "Cache directory [$CACHEDIR] does not exist" 5
+if [[ ! -d ${CACHEDIR} ]]; then
+	mkdir -p ${CACHEDIR} || error_exit "Cache directory [$CACHEDIR] does not exist and could not be created" 5
+fi
 [[ ! -w ${CACHEDIR} ]] && error_exit "Cache directory [$CACHEDIR] is not writable" 6
 
 # Check that the info cache exists for all devices...
@@ -81,12 +83,19 @@ for DEVICE in ${DEVICES[@]}; do
 	DEVFNAME=${DEVICE##\/}	 
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
 
-	# ...and set the INFO_REBUILD flag if it doesn't.
-	[[ ! -f ${DEVFNAME} ]] && INFO_REBUILD="YES" 
+	# ...and set the INFO_REBUILD flag if it doesn't exist or is older than the device node.
+	if [[ ! -f ${DEVFNAME} ]]; then
+		INFO_REBUILD="YES" 
+	else
+		[[ ${DEVFNAME} -ot ${DEVICE} ]] && INFO_REBUILD="YES"
+	fi
 done
 
-# If the INFO_REBUILD flag is set then rebuild the info cache for all devices.
+# If the INFO_REBUILD flag is set then completely clean the cache and rebuild the info files for all devices.
 if [[ ! -z ${INFO_REBUILD} ]]; then
+	echo -n "Cleaning cache files..."
+	rm ${CACHEDIR}/*
+	echo "done."
 	echo -n "Rebuilding info files..."
 	for DEVICE in ${DEVICES[@]}; do
 		DEVFNAME=${DEVICE##\/}	 

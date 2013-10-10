@@ -2,7 +2,7 @@
 DEVICES=(/dev/sd*[a-z])
 
 # Path to cache directory
-CACHEDIR=/var/cache/snmp
+CACHEDIR=/tmp/snmp-cache/smartctl
 
 # Command to run smartctl
 SMARTCMD="/usr/sbin/smartctl"
