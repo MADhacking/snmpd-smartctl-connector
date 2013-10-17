@@ -12,7 +12,7 @@ source ${SNMPD_CONNECTOR_LIB}
 function get_device_path
 {
 	local AINDEX=$((${1} - 1))
-	eval $2=${DEVICES[${AINDEX}]}	
+	eval $2=${DEVICES[${AINDEX}]}
 }
 
 # Helper function to get the device file base path from the devices array using a 1 based index
@@ -23,13 +23,13 @@ function get_device_path
 function get_device_file_basepath
 {
 	local DEVPATH DEVFILE
-	
+
 	# Make the device info filename
 	get_device_path ${1} DEVPATH
-	
+
 	DEVFILE=${DEVPATH##\/}
 	DEVFILE=${CACHEDIR}/${DEVFILE//\//_}
-	
+
 	eval $2=${DEVFILE}
 }
 
@@ -60,7 +60,7 @@ function send_index
 #
 function send_device_path
 {
-	local DEVPATH 
+	local DEVPATH
 	get_device_path ${2} DEVPATH
 	send_string ${1} ${DEVPATH}
 }
@@ -73,11 +73,11 @@ function send_device_path
 function send_device_info
 {
 	local DEVFNAME VALUE
-	
-	# Make the device info filename 
+
+	# Make the device info filename
 	get_device_file_basepath ${3} DEVFNAME
 	DEVFNAME="${DEVFNAME}_info"
-	
+
 	# Find the entry in above file
 	VALUE=$(grep "${1}" < ${DEVFNAME})
 	VALUE=${VALUE#${1}}
@@ -92,11 +92,11 @@ function send_device_info
 function send_device_hlth
 {
 	local DEVFNAME VALUES
-	
-	# Make the device info filename 
+
+	# Make the device info filename
 	get_device_file_basepath ${2} DEVFNAME
 	DEVFNAME="${DEVFNAME}_state"
-	
+
 	# Find the entry in above file
 	VALUES=($(grep "result:" < ${DEVFNAME}))
 	[[ "${VALUES[5]}" == "PASSED" ]] && send_boolean ${1} "T" || send_boolean ${1} "F" 
@@ -112,26 +112,29 @@ function send_device_hlth
 function send_device_attr
 {
 	local DEVFNAME VALUES
-	
-	# Make the device info filename 
+
+	# Make the device info filename
 	get_device_file_basepath ${4} DEVFNAME
 	DEVFNAME="${DEVFNAME}_attr"
-	
+
 	# Find the entry in above file
-	VALUES=($(grep "${1}" < ${DEVFNAME}))
-	case ${2} in
-		"R")
-		send_gauge ${3} ${VALUES[9]}
-		;;
-		
-		"L")
-		send_gauge ${3} $((${VALUES[3]##0} - ${VALUES[5]##0}))
-		;;
-		
-		*)
-		send_gauge ${3} -1		
-		;;	
-	esac
+	if VALUES=($(grep "${1}" < ${DEVFNAME})); then
+		case ${2} in
+			"R")
+			send_gauge ${3} ${VALUES[9]}
+			;;
+
+			"L")
+			send_gauge ${3} $((${VALUES[3]##0} - ${VALUES[5]##0}))
+			;;
+
+			*)
+			send_gauge ${3} -1
+			;;	
+		esac
+	else
+		send_gauge ${3} -1
+	fi
 }
 
 # Function to get the next index value
@@ -142,7 +145,7 @@ function send_device_attr
 function get_next_index
 {
 	debug_function_enter "get_next_index" ${@}
-	
+
 	# If we still have more than one element in the request array then something
 	# is wrong so log an error and return 0.
 	if (( $# > 1 )); then
@@ -150,7 +153,7 @@ function get_next_index
 		debug_function_return
 		return
 	fi
-	
+
 	# If we were passed a starting index...
 	if (( $# > 0 )); then
 		# If the passed index is less than the number of devices then return it +1,
@@ -165,9 +168,9 @@ function get_next_index
 			debug_echo "next index would be out of range, returning zero"
 			debug_function_return
 			return
-		fi 
-	fi	
-	
+		fi
+	fi
+
 	# If we got this far then we were not passed an index so return the first
 	# available index.
 	debug_echo "no index supplied, returning first index"
