@@ -216,6 +216,7 @@ RTABLE[2]="#ETABLE"
 		FTABLE[14]="send_device_attr 'Read_Error_Rate' L" 			# It is for the Read Error Rate (lifetime) of this device.
 		FTABLE[15]="send_device_attr 'Seek_Error_Rate' L"	 		# It is for the Seek Error Rate (lifetime) of this device.
 		FTABLE[16]="send_device_attr 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
+		FTABLE[17]="send_device_info 'Firmware Version:'" 			# It is for the Firmware Version installed on this device.
 
 # Start the loop
 the_loop
