@@ -83,18 +83,22 @@ if [[ -f ${CACHEDIR}/devices ]]; then
 	# Compare the stored list of devices to the current list.
 	if [[ "$(cat ${CACHEDIR}/devices)" = ${DEVICES[@]} ]]; then
 
-	# Check that the info cache exists for all devices...
-	for DEVICE in ${DEVICES[@]}; do
-		DEVFNAME=${DEVICE##\/}	 
-		DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
-	
-		# ...and set the INFO_REBUILD flag if it doesn't exist or is older than the device node.
-		if [[ ! -f ${DEVFNAME} ]]; then
-			INFO_REBUILD="YES" 
-		else
-			[[ ${DEVFNAME} -ot ${DEVICE} ]] && INFO_REBUILD="YES"
-		fi
-	done
+		# Check that the info cache exists for all devices...
+		for DEVICE in ${DEVICES[@]}; do
+			DEVFNAME=${DEVICE##\/}
+			DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
+
+			# ...and set the INFO_REBUILD flag if it doesn't exist or is older than the device node.
+			if [[ ! -f ${DEVFNAME} ]]; then
+				INFO_REBUILD="YES"
+			else
+				[[ ${DEVFNAME} -ot ${DEVICE} ]] && INFO_REBUILD="YES"
+			fi
+		done
+	else
+		# The device list doesn't match.
+		INFO_REBUILD="YES"
+	fi
 else
 	# The device list doesn't exist.
 	INFO_REBUILD="YES"
