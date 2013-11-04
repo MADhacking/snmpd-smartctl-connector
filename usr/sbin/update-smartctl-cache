@@ -78,23 +78,35 @@ if [[ ! -d ${CACHEDIR} ]]; then
 fi
 [[ ! -w ${CACHEDIR} ]] && error_exit "Cache directory [$CACHEDIR] is not writable" 6
 
-# Check that the info cache exists for all devices...
-for DEVICE in ${DEVICES[@]}; do
-	DEVFNAME=${DEVICE##\/}	 
-	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
+# Check that the devices list exists...
+if [[ -f ${CACHEDIR}/devices ]]; then
+	# Compare the stored list of devices to the current list.
+	if [[ "$(cat ${CACHEDIR}/devices)" = ${DEVICES[@]} ]]; then
 
-	# ...and set the INFO_REBUILD flag if it doesn't exist or is older than the device node.
-	if [[ ! -f ${DEVFNAME} ]]; then
-		INFO_REBUILD="YES" 
-	else
-		[[ ${DEVFNAME} -ot ${DEVICE} ]] && INFO_REBUILD="YES"
-	fi
-done
+	# Check that the info cache exists for all devices...
+	for DEVICE in ${DEVICES[@]}; do
+		DEVFNAME=${DEVICE##\/}	 
+		DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
+	
+		# ...and set the INFO_REBUILD flag if it doesn't exist or is older than the device node.
+		if [[ ! -f ${DEVFNAME} ]]; then
+			INFO_REBUILD="YES" 
+		else
+			[[ ${DEVFNAME} -ot ${DEVICE} ]] && INFO_REBUILD="YES"
+		fi
+	done
+else
+	# The device list doesn't exist.
+	INFO_REBUILD="YES"
+fi
 
 # If the INFO_REBUILD flag is set then completely clean the cache and rebuild the info files for all devices.
 if [[ ! -z ${INFO_REBUILD} ]]; then
 	echo -n "Cleaning cache files..."
 	rm ${CACHEDIR}/* &> /dev/null 
+	echo "done."
+	echo -n "Storing device list..."
+	echo ${DEVICES[@]} > ${CACHEDIR}/devices
 	echo "done."
 	echo -n "Rebuilding info files..."
 	for DEVICE in ${DEVICES[@]}; do
@@ -129,3 +141,10 @@ for DEVICE in ${DEVICES[@]}; do
 	mv ${TDEVFNAME} ${DEVFNAME}
 done
 echo "done."
+
+# If the INFO_REBUILD flag is set kill any connector processes.
+if [[ ! -z ${INFO_REBUILD} ]]; then
+	echo -n "Killing any running connectors..."
+	killall snmpd-smartctl-connector
+	echo "done."
+fi
