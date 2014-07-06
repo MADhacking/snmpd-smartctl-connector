@@ -119,13 +119,21 @@ function send_device_attr
 
 	# Find the entry in above file
 	if VALUES=($(grep "${1}" < ${DEVFNAME})); then
-		case ${2} in
+		case "${2}" in
 			"R")
-			send_gauge ${3} ${VALUES[9]}
+				if is_positive_integer "${VALUES[9]}"; then
+					send_gauge "${3}" "${VALUES[9]}"
+				else
+					send_gauge "${3}" -1
+				fi
 			;;
 
 			"L")
-			send_gauge ${3} $((${VALUES[3]##0} - ${VALUES[5]##0}))
+				if is_positive_integer "${VALUES[3]##0}" && is_positive_integer "${VALUES[5]##0}"; then
+					send_gauge "${3}" $((${VALUES[3]##0} - ${VALUES[5]##0}))
+				else
+					send_gauge "${3}" -1
+				fi		
 			;;
 
 			*)
