@@ -97,8 +97,21 @@ function send_device_hlth
 	get_device_file_basepath ${2} DEVFNAME
 	DEVFNAME="${DEVFNAME}_state"
 
+	# Report any marginal errors as not OK
+	if grep FAILING_NOW < ${DEVFNAME} >/dev/null; then
+		send_boolean ${1} "F"
+		return
+	fi
+
 	# Find the entry in above file
 	VALUES=($(grep "result:" < ${DEVFNAME}))
+	
+	# If device has no health status, report as OK (would be better to skip OID entirely?)
+	if [[ "${#VALUES[*]}" -eq 0 ]]; then
+		send_boolean ${1} "T"
+		return
+	fi
+
 	[[ "${VALUES[5]}" == "PASSED" ]] && send_boolean ${1} "T" || send_boolean ${1} "F" 
 }
 
