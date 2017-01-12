@@ -158,6 +158,30 @@ function send_device_attr
 	fi
 }
 
+# Function to send device temperature - called: send_device_temp OID DEVICE
+#
+#	@in_param	$1 - The OID to send before this data
+#	@in_param	$2 - The index value
+#
+function send_device_temp
+{
+	local DEVFNAME VALUES
+
+	# Make the device info filename
+	get_device_file_basepath ${2} DEVFNAME
+	DEVFNAME="${DEVFNAME}_state"
+
+	# Find the entry in above file
+	VALUES=($(grep "Temperature_Celsius" < ${DEVFNAME})) || \
+	VALUES=($(grep "Airflow_Temperature" < ${DEVFNAME}))
+
+	if is_positive_integer "${VALUES[9]}"; then
+		send_gauge "${1}" "${VALUES[9]}"
+	else
+		send_gauge "${1}" -1
+	fi
+}
+
 # Function to get the next index value
 #
 #	@in_param	$1 - The (optional) starting index value
@@ -232,7 +256,7 @@ RTABLE[2]="#ETABLE"
 		FTABLE[6]="send_device_info 'User Capacity:'" 				# It is for the device user capacity.
 		FTABLE[7]="send_device_info 'ATA Version is:'"				# It is for the device ATA version.
 		FTABLE[8]="send_device_hlth"								# It is for the overall SMART health state.
-		FTABLE[9]="send_device_attr 'Temperature_Celsius' R" 		# It is for the device temperature.
+		FTABLE[9]="send_device_temp" 								# It is for the device temperature.
 		FTABLE[10]="send_device_attr 'Reallocated_Sector_Ct' R" 	# It is for the Reallocated Sector Count of this device.
 		FTABLE[11]="send_device_attr 'Current_Pending_Sector' R"	# It is for the Current Pending Sector count of this device.
 		FTABLE[12]="send_device_attr 'Offline_Uncorrectable' R" 	# It is for the Off-line Uncorrectable count of this device.
