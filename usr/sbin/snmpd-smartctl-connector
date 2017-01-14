@@ -169,7 +169,7 @@ function send_device_temp
 
 	# Make the device info filename
 	get_device_file_basepath ${2} DEVFNAME
-	DEVFNAME="${DEVFNAME}_state"
+	DEVFNAME="${DEVFNAME}_attr"
 
 	# Find the entry in above file
 	VALUES=($(grep "Temperature_Celsius" < ${DEVFNAME})) || \
