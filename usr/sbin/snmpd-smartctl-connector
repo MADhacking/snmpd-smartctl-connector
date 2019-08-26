@@ -265,6 +265,9 @@ RTABLE[2]="#ETABLE"
 		FTABLE[15]="send_device_attr 'Seek_Error_Rate' L"	 		# It is for the Seek Error Rate (lifetime) of this device.
 		FTABLE[16]="send_device_attr 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
 		FTABLE[17]="send_device_info 'Firmware Version:'" 			# It is for the Firmware Version installed on this device.
+		FTABLE[18]="send_device_attr 'SSD_Life_Left' L" 			# It is for the SSD Life Left of this device.
+		FTABLE[19]="send_device_attr 'Power_Cycle_Count' R" 			# It is for the Power Cycle Count of this device.
+		FTABLE[20]="send_device_attr 'Power_On_Hours' R" 			# It is for the Power On Hours of this device.
 
 # Start the loop
 the_loop
