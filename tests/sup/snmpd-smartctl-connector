@@ -1,5 +1,5 @@
 # List (or glob) of disk devices to monitor
-DEVICES=(/dev/sd*[a-z])
+DEVICES=(/dev/sda /dev/sdb])
 
 # Path to cache directory
 CACHEDIR=/tmp/snmp-cache/smartctl
