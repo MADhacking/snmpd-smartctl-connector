@@ -228,10 +228,10 @@ function get_next_index
 
 # Init local vars
 CMDNAME=$(basename ${0})
-CONFIG="/etc/snmpd-smartctl-connector"
+CONFIG="${CONFIG:-/etc/snmpd-smartctl-connector}"
 DEVICES=""
 CACHEDIR=""
-SNMP_TRANSLATE=""
+DEBUG=""
 
 # Read the config file if we can
 [[ -r ${CONFIG} ]] && source ${CONFIG} || die "Unable to read configuration file [${CONFIG}]"
@@ -239,9 +239,10 @@ SNMP_TRANSLATE=""
 # Check for config values.
 [[ -z "${DEVICES}" ]] && die "No DEVICES configured in ${CONFIG}"
 [[ -z "${CACHEDIR}" ]] && die "No CACHEDIR configured in ${CONFIG}"
-[[ ! -d "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not a directory"
+if [[ ! -d "${CACHEDIR}" ]]; then
+     mkdir -p "${CACHEDIR}" || die "Cache directory [${CACHEDIR}] does not exist and could not be created"
+ fi
 [[ ! -r "${CACHEDIR}" ]] && die "Cache directory [${CACHEDIR}] is not readable by $(whoami)"
-[[ -z "${SNMP_TRANSLATE}" ]] && die "No SNMP_TRANSLATE command configured in ${CONFIG}"
 
 # Configure base address
 BASE_MIB="SMARTCTL-MIB::smartCtl"
