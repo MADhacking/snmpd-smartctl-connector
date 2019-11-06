@@ -1,7 +1,9 @@
 #!/bin/bash -u
 
 # Include snmpd-connector-lib.sh or die.
-[[ ! -r ${SNMPD_CONNECTOR_LIB:=/usr/lib/snmpd-connector-lib.sh} ]] && echo "Unable to find ${SNMPD_CONNECTOR_LIB}" && exit 1
+[[ ! -r ${SNMPD_CONNECTOR_LIB:=/usr/lib/snmpd-connector-lib.sh} ]] && \
+    echo "Unable to find ${SNMPD_CONNECTOR_LIB}" && exit 1
+# shellcheck disable=SC1090
 source ${SNMPD_CONNECTOR_LIB}
 
 # Helper function to get the device path from the devices array using a 1 based index
@@ -12,7 +14,7 @@ source ${SNMPD_CONNECTOR_LIB}
 function get_device_path
 {
 	local AINDEX=$((${1} - 1))
-	eval $2=${DEVICES[${AINDEX}]}
+	eval "$2"="${DEVICES[${AINDEX}]}"
 }
 
 # Helper function to get the device file base path from the devices array using a 1 based index
