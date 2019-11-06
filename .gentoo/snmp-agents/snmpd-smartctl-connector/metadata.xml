@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+
+<pkgmetadata>
+    <maintainer type="person">
+        <name>Overlay Maintainer</name>
+        <email>overlay-maintainer@mad-hacking.net</email>
+    </maintainer>
+    <upstream>
+        <maintainer>
+            <name>Default Package Maintainer</name>
+            <email>default-package-maintainer@mad-hacking.net</email>
+        </maintainer>
+        <bugs-to>https://github.com/MADhacking/snmpd-smartctl-connector/issues</bugs-to>
+        <doc>http://www.mad-hacking.net/software/linux/agnostic/snmpd-smartctl-connector/index.xml</doc>
+    </upstream>
+</pkgmetadata>
