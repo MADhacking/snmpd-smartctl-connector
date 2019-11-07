@@ -26,6 +26,7 @@ function helpscreen
 # Init local vars
 CMDNAME=$(basename "${0}")
 CONFIG="${CONFIG:-/etc/snmpd-smartctl-connector}"
+SMARTCTL="${SMARTCTL:-$(command -v smartctl)}"
 DEVICES=""
 
 # Read the config file if we can
@@ -101,7 +102,7 @@ if [[ -n ${INFO_REBUILD} ]]; then
 		DEVFNAME=${DEVICE##\/}	 
 		DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
 	
-		smartctl -i "${DEVICE}" > "${DEVFNAME}"
+		${SMARTCTL} -i "${DEVICE}" > "${DEVFNAME}"
 	done
 	echo "done."
 fi
@@ -113,7 +114,7 @@ for DEVICE in "${DEVICES[@]}"; do
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_state
 	TDEVFNAME=${DEVFNAME}.tmp
 
-	smartctl -H "${DEVICE}" > "${TDEVFNAME}"
+	${SMARTCTL} -H "${DEVICE}" > "${TDEVFNAME}"
 	mv "${TDEVFNAME}" "${DEVFNAME}"
 done
 echo "done."
@@ -125,7 +126,7 @@ for DEVICE in "${DEVICES[@]}"; do
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_attr
 	TDEVFNAME=${DEVFNAME}.tmp
 
-	smartctl -A "${DEVICE}" > "${TDEVFNAME}"
+	${SMARTCTL} -A "${DEVICE}" > "${TDEVFNAME}"
 	mv "${TDEVFNAME}" "${DEVFNAME}"
 done
 echo "done."
