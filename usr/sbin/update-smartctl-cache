@@ -26,7 +26,9 @@ function helpscreen
 # Init local vars
 CMDNAME=$(basename "${0}")
 CONFIG="${CONFIG:-/etc/snmpd-smartctl-connector}"
+DEVICES=""
 
+# Read the config file if we can
 # shellcheck disable=SC1090
 source "${CONFIG}" || die "Unable to read configuration file [${CONFIG}]"
 
@@ -50,27 +52,23 @@ do
 	esac
 done
 
-# If we couldn't open the config file then complain and exit.
-[[ ! -r $CONFIG ]] && error_exit "Unable to open configuration file [$CONFIG]" 1
-
 # Check for sensible configuration values.
-[[ -z ${DEVICES} ]] && error_exit "No DEVICES defined in $CONFIG" 2
-[[ -z ${CACHEDIR} ]] && error_exit "No CACHEDIR defined in $CONFIG" 3
-[[ -z ${SMARTCMD} ]] && error_exit "No SMARTCMD defined in $CONFIG" 4
+[[ -z "${DEVICES}" ]] && die "No DEVICES defined in ${CONFIG}"
+[[ -z "${CACHEDIR}" ]] && die "No CACHEDIR defined in ${CONFIG}"
 
 # Check that the cache directory exists and is writable
-if [[ ! -d ${CACHEDIR} ]]; then
-	mkdir -p ${CACHEDIR} || error_exit "Cache directory [$CACHEDIR] does not exist and could not be created" 5
+if [[ ! -d "${CACHEDIR}" ]]; then
+	mkdir -p "${CACHEDIR}" || die "Cache directory [$CACHEDIR] does not exist and could not be created"
 fi
-[[ ! -w ${CACHEDIR} ]] && error_exit "Cache directory [$CACHEDIR] is not writable" 6
+[[ ! -w "${CACHEDIR}" ]] && die "Cache directory [$CACHEDIR] is not writable"
 
 # Check that the devices list exists...
-if [[ -f ${CACHEDIR}/devices ]]; then
+if [[ -f "${CACHEDIR}/devices" ]]; then
 	# Compare the stored list of devices to the current list.
-	if [[ "$(cat ${CACHEDIR}/devices)" = ${DEVICES[@]} ]]; then
+	if [[ "$(cat "${CACHEDIR}/devices")" = "${DEVICES[*]}" ]]; then
 
 		# Check that the info cache exists for all devices...
-		for DEVICE in ${DEVICES[@]}; do
+		for DEVICE in "${DEVICES[@]}"; do
 			DEVFNAME=${DEVICE##\/}
 			DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
 
@@ -91,49 +89,49 @@ else
 fi
 
 # If the INFO_REBUILD flag is set then completely clean the cache and rebuild the info files for all devices.
-if [[ ! -z ${INFO_REBUILD} ]]; then
+if [[ -n ${INFO_REBUILD} ]]; then
 	echo -n "Cleaning cache files..."
-	rm ${CACHEDIR}/* &> /dev/null 
+	rm "${CACHEDIR}"/* &> /dev/null 
 	echo "done."
 	echo -n "Storing device list..."
-	echo ${DEVICES[@]} > ${CACHEDIR}/devices
+	echo "${DEVICES[@]}" > "${CACHEDIR}/devices"
 	echo "done."
 	echo -n "Rebuilding info files..."
-	for DEVICE in ${DEVICES[@]}; do
+	for DEVICE in "${DEVICES[@]}"; do
 		DEVFNAME=${DEVICE##\/}	 
 		DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_info
 	
-		${SMARTCMD} -i ${DEVICE} > ${DEVFNAME}
+		smartctl -i "${DEVICE}" > "${DEVFNAME}"
 	done
 	echo "done."
 fi
 
 # Rebuild the status cache for all devices.
 echo -n "Rebuilding state files..."
-for DEVICE in ${DEVICES[@]}; do
+for DEVICE in "${DEVICES[@]}"; do
 	DEVFNAME=${DEVICE##\/}	 
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_state
 	TDEVFNAME=${DEVFNAME}.tmp
 
-	${SMARTCMD} -H ${DEVICE} > ${TDEVFNAME}
-	mv ${TDEVFNAME} ${DEVFNAME}
+	smartctl -H "${DEVICE}" > "${TDEVFNAME}"
+	mv "${TDEVFNAME}" "${DEVFNAME}"
 done
 echo "done."
 
 # Rebuild the attribute cache for all devices.
 echo -n "Rebuilding attribute files..."
-for DEVICE in ${DEVICES[@]}; do
+for DEVICE in "${DEVICES[@]}"; do
 	DEVFNAME=${DEVICE##\/}	 
 	DEVFNAME=${CACHEDIR}/${DEVFNAME//\//_}_attr
 	TDEVFNAME=${DEVFNAME}.tmp
 
-	${SMARTCMD} -A ${DEVICE} > ${TDEVFNAME}
-	mv ${TDEVFNAME} ${DEVFNAME}
+	smartctl -A "${DEVICE}" > "${TDEVFNAME}"
+	mv "${TDEVFNAME}" "${DEVFNAME}"
 done
 echo "done."
 
 # If the INFO_REBUILD flag is set kill any connector processes.
-if [[ ! -z ${INFO_REBUILD} ]]; then
+if [[ -n ${INFO_REBUILD} ]]; then
 	echo -n "Killing any running connectors..."
 	killall snmpd-smartctl-connector
 	echo "done."
