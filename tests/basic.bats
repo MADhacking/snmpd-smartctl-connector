@@ -82,4 +82,6 @@ END
     assert_success
     assert_line --index 8 "/dev/sda"
     assert_line --index 11 "/dev/sdb"
+    assert_line --index 25 "ZFA0H5XE"
+    assert_line --index 28 "5MT0CG5Q"
 }
