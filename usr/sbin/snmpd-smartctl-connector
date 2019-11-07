@@ -133,7 +133,6 @@ function send_device_attr
 	DEVFNAME="${DEVFNAME}_attr"
 
 	# Find the entry in above file
-	echo "${1}"
 	if VALUES=($(grep "${1}" < ${DEVFNAME})); then
 		if [[ "${2}" == "R" ]]; then
 			if is_positive_integer "${VALUES[9]}"; then
