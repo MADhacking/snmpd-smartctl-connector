@@ -1,4 +1,5 @@
 #!/bin/bash -u
+# shellcheck disable=SC2034
 
 # Include snmpd-connector-lib.sh or die.
 [[ ! -r ${SNMPD_CONNECTOR_LIB:=/usr/lib/snmpd-connector-lib.sh} ]] && \
@@ -64,7 +65,7 @@ function send_device_path
 {
 	local DEVPATH
 	get_device_path "${2}" DEVPATH
-	send_string "${1}" ${DEVPATH}
+	send_string "${1}" "${DEVPATH}"
 }
 
 # Function to send device info - called: send_device_info OID DEVICE "Info String"
@@ -77,15 +78,15 @@ function send_device_info
 	local DEVFNAME VALUE
 
 	# Make the device info filename
-	get_device_file_basepath ${3} DEVFNAME
+	get_device_file_basepath "${3}" DEVFNAME
 	DEVFNAME="${DEVFNAME}_info"
 
 	# Find the entry in above file
-	VALUE=$(grep "${1}" < ${DEVFNAME})
+	VALUE=$(grep "${1}" < "${DEVFNAME}")
 	VALUE=${VALUE#${1}}
 	VALUE="${VALUE#"${VALUE%%[![:space:]]*}"}"
 	VALUE="${VALUE%"${VALUE##*[![:space:]]}"}"
-	send_string ${2} "${VALUE}"
+	send_string "${2}" "${VALUE}"
 }
 
 # Function to send device health - called: send_device_hlth OID DEVICE
@@ -98,25 +99,30 @@ function send_device_hlth
 	local DEVFNAME VALUES
 
 	# Make the device info filename
-	get_device_file_basepath ${2} DEVFNAME
+	get_device_file_basepath "${2}" DEVFNAME
 	DEVFNAME="${DEVFNAME}_state"
 
 	# Report any marginal errors as not OK
-	if grep FAILING_NOW < ${DEVFNAME} >/dev/null; then
-		send_boolean ${1} "F"
+	if grep FAILING_NOW < "${DEVFNAME}" >/dev/null; then
+		send_boolean "${1}" "F"
 		return
 	fi
 
 	# Find the entry in above file
-	VALUES=($(grep "result:" < ${DEVFNAME}))
+	# shellcheck disable=SC2207
+	VALUES=($(grep "result:" < "${DEVFNAME}"))
 	
 	# If device has no health status, report as OK (would be better to skip OID entirely?)
 	if [[ "${#VALUES[*]}" -eq 0 ]]; then
-		send_boolean ${1} "T"
+		send_boolean "${1}" "T"
 		return
 	fi
 
-	[[ "${VALUES[5]}" == "PASSED" ]] && send_boolean ${1} "T" || send_boolean ${1} "F" 
+	if [[ "${VALUES[5]}" == "PASSED" ]]; then
+	    send_boolean "${1}" "T"
+	else
+	    send_boolean "${1}" "F"
+	fi
 }
 
 # Function to send device attribute - called: send_device_attr OID DEVICE "Attribute String" R[aw]|L[ife]
@@ -128,14 +134,15 @@ function send_device_hlth
 #
 function send_device_attr
 {
-	local DEVFNAME TYPE VALUES
+	local DEVFNAME VALUES
 
 	# Make the device info filename
-	get_device_file_basepath ${4} DEVFNAME
+	get_device_file_basepath "${4}" DEVFNAME
 	DEVFNAME="${DEVFNAME}_attr"
 
 	# Find the entry in above file
-	if VALUES=($(grep "${1}" < ${DEVFNAME})); then
+    # shellcheck disable=SC2207
+	if VALUES=($(grep "${1}" < "${DEVFNAME}")); then
 		if [[ "${2}" == "R" ]]; then
 			if is_positive_integer "${VALUES[9]}"; then
 				send_gauge "${3}" "${VALUES[9]}"
@@ -149,10 +156,10 @@ function send_device_attr
 				send_gauge "${3}" -1
 			fi		
 		else
-			send_gauge ${3} -1
+			send_gauge "${3}" -1
 		fi
 	else
-		send_gauge ${3} -1
+		send_gauge "${3}" -1
 	fi
 }
 
@@ -166,12 +173,13 @@ function send_device_temp
 	local DEVFNAME VALUES
 
 	# Make the device info filename
-	get_device_file_basepath ${2} DEVFNAME
+	get_device_file_basepath "${2}" DEVFNAME
 	DEVFNAME="${DEVFNAME}_attr"
 
 	# Find the entry in above file
-	VALUES=($(grep "Temperature_Celsius" < ${DEVFNAME})) || \
-	VALUES=($(grep "Airflow_Temperature" < ${DEVFNAME}))
+    # shellcheck disable=SC2207
+	VALUES=($(grep "Temperature_Celsius" < "${DEVFNAME}")) || \
+	    VALUES=($(grep "Airflow_Temperature" < "${DEVFNAME}"))
 
 	if is_positive_integer "${VALUES[9]}"; then
 		send_gauge "${1}" "${VALUES[9]}"
@@ -216,15 +224,16 @@ function get_next_index
 	return
 }
 
-# Init local vars
-CMDNAME=$(basename ${0})
+# Init local var
+CMDNAME=$(basename "${0}")
 CONFIG="${CONFIG:-/etc/snmpd-smartctl-connector}"
 DEVICES=""
 CACHEDIR=""
 DEBUG=""
 
 # Read the config file if we can
-[[ -r ${CONFIG} ]] && source ${CONFIG} || die "Unable to read configuration file [${CONFIG}]"
+# shellcheck disable=SC1090
+source "${CONFIG}" || die "Unable to read configuration file [${CONFIG}]"
 
 # Check for config values.
 [[ -z "${DEVICES}" ]] && die "No DEVICES configured in ${CONFIG}"
@@ -258,8 +267,6 @@ RTABLE[2]="#ETABLE"
 		FTABLE[15]="send_device_attr 'Seek_Error_Rate' L"	 		# It is for the Seek Error Rate (lifetime) of this device.
 		FTABLE[16]="send_device_attr 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
 		FTABLE[17]="send_device_info 'Firmware Version:'" 			# It is for the Firmware Version installed on this device.
-
-#debug_function_calls send_device_attr
 
 # Start the loop
 the_loop
