@@ -126,35 +126,30 @@ function send_device_hlth
 #
 function send_device_attr
 {
-	local DEVFNAME VALUES
+	local DEVFNAME TYPE VALUES
 
 	# Make the device info filename
 	get_device_file_basepath ${4} DEVFNAME
 	DEVFNAME="${DEVFNAME}_attr"
 
 	# Find the entry in above file
+	echo "${1}"
 	if VALUES=($(grep "${1}" < ${DEVFNAME})); then
-		case "${2}" in
-			"R")
-				if is_positive_integer "${VALUES[9]}"; then
-					send_gauge "${3}" "${VALUES[9]}"
-				else
-					send_gauge "${3}" -1
-				fi
-			;;
-
-			"L")
-				if is_positive_integer "${VALUES[3]##0}" && is_positive_integer "${VALUES[5]##0}"; then
-					send_gauge "${3}" $((${VALUES[3]##0} - ${VALUES[5]##0}))
-				else
-					send_gauge "${3}" -1
-				fi		
-			;;
-
-			*)
+		if [[ "${2}" == "R" ]]; then
+			if is_positive_integer "${VALUES[9]}"; then
+				send_gauge "${3}" "${VALUES[9]}"
+			else
+				send_gauge "${3}" -1
+			fi
+	    elif [[ "${2}" == "L" ]]; then
+			if is_positive_integer "${VALUES[3]##0}" && is_positive_integer "${VALUES[5]##0}"; then
+				send_gauge "${3}" $((${VALUES[3]##0} - ${VALUES[5]##0}))
+			else
+				send_gauge "${3}" -1
+			fi		
+		else
 			send_gauge ${3} -1
-			;;	
-		esac
+		fi
 	else
 		send_gauge ${3} -1
 	fi
@@ -191,13 +186,10 @@ function send_device_temp
 #
 function get_next_index
 {
-	debug_function_enter "get_next_index" ${@}
-
 	# If we still have more than one element in the request array then something
 	# is wrong so log an error and return 0.
 	if (( $# > 1 )); then
 		error_echo "get_next_index: called with $# request array elements!"
-		debug_function_return
 		return
 	fi
 
@@ -209,11 +201,9 @@ function get_next_index
 			RETVAL=$(( ${1} + 1 ))
 			debug_echo "next index is in range, returning ${RETVAL}"
 			echo "${RETVAL}"
-			debug_function_return
 			return
 		else
 			debug_echo "next index would be out of range, returning zero"
-			debug_function_return
 			return
 		fi
 	fi
@@ -222,7 +212,6 @@ function get_next_index
 	# available index.
 	debug_echo "no index supplied, returning first index"
 	echo "1"
-	debug_function_return
 	return
 }
 
@@ -268,6 +257,8 @@ RTABLE[2]="#ETABLE"
 		FTABLE[15]="send_device_attr 'Seek_Error_Rate' L"	 		# It is for the Seek Error Rate (lifetime) of this device.
 		FTABLE[16]="send_device_attr 'Hardware_ECC_Recovered' L" 	# It is for the Hardware ECC recovered (lifetime) of this device.
 		FTABLE[17]="send_device_info 'Firmware Version:'" 			# It is for the Firmware Version installed on this device.
+
+#debug_function_calls send_device_attr
 
 # Start the loop
 the_loop
