@@ -1,11 +1,11 @@
 # List (or glob) of disk devices to monitor
-DEVICES=(/dev/sda /dev/sdb])
+DEVICES=("/dev/sda" "/dev/sdb")
 
 # Path to cache directory
-CACHEDIR=/tmp/snmp-cache/smartctl
+CACHEDIR="tests/sup/"
 
 # Command to run smartctl
 SMARTCMD="/usr/sbin/smartctl"
 
 # Define debug to log lots
-# DEBUG="true"
+#DEBUG="true"

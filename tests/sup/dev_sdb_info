@@ -1,0 +1,16 @@
+smartctl 5.40 2010-10-16 r3189 [x86_64-pc-linux-gnu] (local build)
+Copyright (C) 2002-10 by Bruce Allen, http://smartmontools.sourceforge.net
+
+=== START OF INFORMATION SECTION ===
+Model Family:     Seagate Barracuda 7200.7 and 7200.7 Plus family
+Device Model:     ST3160827AS
+Serial Number:    5MT0CG5Q
+Firmware Version: 3.42
+User Capacity:    160,041,885,696 bytes
+Device is:        In smartctl database [for details use: -P show]
+ATA Version is:   6
+ATA Standard is:  ATA/ATAPI-6 T13 1410D revision 2
+Local Time is:    Sat Oct  8 10:57:27 2011 CEST
+SMART support is: Available - device has SMART capability.
+SMART support is: Enabled
+

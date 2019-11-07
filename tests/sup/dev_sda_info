@@ -1,0 +1,19 @@
+smartctl 6.6 2017-11-05 r4594 [x86_64-linux-4.19.23-gentoo] (local build)
+Copyright (C) 2002-17, Bruce Allen, Christian Franke, www.smartmontools.org
+
+=== START OF INFORMATION SECTION ===
+Device Model:     ST1000NM0008-2F2100
+Serial Number:    ZFA0H5XE
+LU WWN Device Id: 5 000c50 0b4043a18
+Firmware Version: SN02
+User Capacity:    1,000,204,886,016 bytes [1.00 TB]
+Sector Size:      512 bytes logical/physical
+Rotation Rate:    7200 rpm
+Form Factor:      3.5 inches
+Device is:        Not in smartctl database [for details use: -P showall]
+ATA Version is:   ACS-3 T13/2161-D revision 5
+SATA Version is:  SATA 3.1, 6.0 Gb/s (current: 3.0 Gb/s)
+Local Time is:    Tue Apr 16 21:40:01 2019 CEST
+SMART support is: Available - device has SMART capability.
+SMART support is: Enabled
+
