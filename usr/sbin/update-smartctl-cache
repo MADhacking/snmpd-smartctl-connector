@@ -23,18 +23,12 @@ function helpscreen
     echo "      --version                  output version information and exit"
 }
 
-function error_exit
-{
-	echo "Error: $1" >&2
-	exit $2
-}
-
 # Init local vars
-CMDNAME=$(basename ${0})
-CONFIG="/etc/snmpd-smartctl-connector"
+CMDNAME=$(basename "${0}")
+CONFIG="${CONFIG:-/etc/snmpd-smartctl-connector}"
 
-# Read the config file if we can
-[[ -r $CONFIG ]] && source $CONFIG
+# shellcheck disable=SC1090
+source "${CONFIG}" || die "Unable to read configuration file [${CONFIG}]"
 
 # Process command line switches
 while (( $# > 0 ))
