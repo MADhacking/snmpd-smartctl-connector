@@ -5,7 +5,7 @@ load '/usr/lib/bats-support/load.bash'
 load '/usr/lib/bats-assert/load.bash'
 
 @test "basic_loop" {
-    CONFIG="tests/sup/snmpd-smartctl-connector" run usr/sbin/snmpd-smartctl-connector << 'END'
+    CONFIG="tests/sup/snmpd-smartctl-connector.cfg" run usr/sbin/snmpd-smartctl-connector << 'END'
 getnext
 .1.3.6.1.4.1.38696.2.1
 getnext
