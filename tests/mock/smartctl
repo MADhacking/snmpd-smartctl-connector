@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+case $1 in
+    "-i")
+        case $2 in
+            "/dev/sda")
+                cat tests/sup/dev_sda_info
+            ;;
+            "/dev/sdb")
+                cat tests/sup/dev_sdb_info
+            ;;
+            *)
+                exit 1
+            ;;
+        esac
+    ;;
+    "-H")
+        case $2 in
+            "/dev/sda")
+                cat tests/sup/dev_sda_state
+            ;;
+            "/dev/sdb")
+                cat tests/sup/dev_sdb_state
+            ;;
+            *)
+                exit 1
+            ;;
+        esac
+        ;;
+    "-A")
+        case $2 in
+            "/dev/sda")
+                cat tests/sup/dev_sda_attr
+            ;;
+            "/dev/sdb")
+                cat tests/sup/dev_sdb_attr
+            ;;
+            *)
+                exit 1
+            ;;
+        esac
+    ;;
+    *)
+        exit 1
+    ;;
+esac
