@@ -27,12 +27,12 @@ function get_device_file_basepath
 	local DEVPATH DEVFILE
 
 	# Make the device info filename
-	get_device_path ${1} DEVPATH
+	get_device_path "${1}" DEVPATH
 
 	DEVFILE=${DEVPATH##\/}
 	DEVFILE=${CACHEDIR}/${DEVFILE//\//_}
 
-	eval $2=${DEVFILE}
+	eval "$2"="${DEVFILE}"
 }
 
 # Function to send the index value
@@ -46,13 +46,13 @@ function send_index
 	if (( $# > 1 )); then
 		if (( ${2} <= ${#DEVICES[@]} )); then
 			# Send the OID and the index number.
-			send_integer ${1} ${2}
+			send_integer "${1}" "${2}"
 			return
 		fi
 	fi
 
 	# Send the OID and NONE.
-	send_none ${1}
+	send_none "${1}"
 }
 
 # Function to send the device path
@@ -63,8 +63,8 @@ function send_index
 function send_device_path
 {
 	local DEVPATH
-	get_device_path ${2} DEVPATH
-	send_string ${1} ${DEVPATH}
+	get_device_path "${2}" DEVPATH
+	send_string "${1}" ${DEVPATH}
 }
 
 # Function to send device info - called: send_device_info OID DEVICE "Info String"
@@ -83,6 +83,8 @@ function send_device_info
 	# Find the entry in above file
 	VALUE=$(grep "${1}" < ${DEVFNAME})
 	VALUE=${VALUE#${1}}
+	VALUE="${VALUE#"${VALUE%%[![:space:]]*}"}"
+	VALUE="${VALUE%"${VALUE##*[![:space:]]}"}"
 	send_string ${2} "${VALUE}"
 }
 
