@@ -24,7 +24,7 @@ RESTRICT="!test? ( test )"
 RDEPEND=">=dev-libs/snmpd-connector-lib-1.0.0
          >=snmp-mibs/smartctl-snmp-mib-0.3
          sys-apps/smartmontools"
-DEPEND="test? ( 
+DEPEND="test? (
     ${RDEPEND}
     dev-util/bats-assert
 )"
