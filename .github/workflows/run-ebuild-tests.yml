@@ -14,7 +14,7 @@ jobs:
     - name: Prepare
       id: prepare
       run: |
-        echo "::set-output name=date::$(date +"%Y%m%d")"
+        echo "::set-output name=date::$(date +%Y%m%d)"
         mkdir ${GITHUB_WORKSPACE}/distfiles ${GITHUB_WORKSPACE}/binpkgs
 
     # Cache distfiles and binary packages
