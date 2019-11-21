@@ -15,7 +15,7 @@ load '/usr/lib/bats-assert/load.bash'
 }
 
 @test "update" {
-    rm -rf /tmp/tests/snmpd-smartctl-connector
+    rm -rf /tmp/tests
     
     SMARTCTL="tests/mock/smartctl" CONFIG="tests/sup/update-smartctl-cache.cfg" run usr/sbin/update-smartctl-cache
 
@@ -36,5 +36,7 @@ load '/usr/lib/bats-assert/load.bash'
         run diff -u "/tmp/tests/snmpd-smartctl-connector/dev_${f}" "tests/sup/dev_${f}"
         assert_success
     done
+
+    rm -rf /tmp/tests
 }
    
