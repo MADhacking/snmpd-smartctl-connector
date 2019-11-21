@@ -12,6 +12,6 @@ jobs:
     - uses: hacking-gentoo/action-ebuild-release@master
       with:
         overlay: MADhacking/overlay
-        overlay_branch: auto
+        overlay_branch: staging
       env:
         GHA_DEPLOY_KEY: ${{ secrets.GHA_DEPLOY_KEY }}
