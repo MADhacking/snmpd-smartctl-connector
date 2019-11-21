@@ -10,19 +10,23 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
+    # Check out the repository
+    - uses: actions/checkout@master
+
     # Prepare the environment
     - name: Prepare
       id: prepare
       run: |
-        echo "::set-output name=date::$(date +%Y%m%d)"
-        mkdir ${GITHUB_WORKSPACE}/distfiles ${GITHUB_WORKSPACE}/binpkgs
+        echo "::set-output name=datetime::$(date +"%Y%m%d%H%M")"
+        echo "::set-output name=workspace::${GITHUB_WORKSPACE}"
+        mkdir -p "${GITHUB_WORKSPACE}/distfiles" "${GITHUB_WORKSPACE}/binpkgs"
 
     # Cache distfiles and binary packages
     - name: Cache distfiles
       id: cache-distfiles
       uses: gerbal/always-cache@v1.0.3
       with:
-        path: ${GITHUB_WORKSPACE}/distfiles
+        path: ${{ steps.prepare.outputs.workspace }}/distfiles
         key: distfiles-${{ steps.prepare.outputs.datetime }}
         restore-keys: |
           distfiles-${{ steps.prepare.outputs.datetime }}
@@ -31,14 +35,11 @@ jobs:
       id: cache-binpkgs
       uses: gerbal/always-cache@v1.0.3
       with:
-        path: ${GITHUB_WORKSPACE}/binpkgs
+        path: ${{ steps.prepare.outputs.workspace }}/binpkgs
         key: binpkgs-${{ steps.prepare.outputs.datetime }}
         restore-keys: |
           binpkgs-${{ steps.prepare.outputs.datetime }}
           binpkgs
-
-    # Check out the repository
-    - uses: actions/checkout@master
 
     # Run the ebuild tests
     - uses: hacking-gentoo/action-ebuild-test@master
