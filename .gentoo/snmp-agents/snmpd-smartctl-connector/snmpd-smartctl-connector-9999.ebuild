@@ -15,7 +15,7 @@ else
     SRC_URI="https://github.com/GITHUB_REPOSITORY/archive/${PV}.tar.gz -> ${P}.tar.gz"
 fi
 
-KEYWORDS="amd64 x86"
+KEYWORDS=""
 IUSE="test"
 SLOT="0"
 
