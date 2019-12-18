@@ -4,6 +4,10 @@ on:
   push:
     paths-ignore:
       - 'README.md'
+      - 'LICENSE'
+      - '.github/*'
+    tags-ignore:
+      - '*.*'
 
 jobs:
   tests:
