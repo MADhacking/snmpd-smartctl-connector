@@ -23,6 +23,12 @@ function helpscreen
     echo "      --version                  output version information and exit"
 }
 
+function die
+{
+    echo "${1}" >&2
+    exit 1
+}
+
 # Init local vars
 CMDNAME=$(basename "${0}")
 CONFIG="${CONFIG:-/etc/snmpd-smartctl-connector}"
@@ -31,7 +37,7 @@ DEVICES=""
 
 # Read the config file if we can
 # shellcheck disable=SC1090
-source "${CONFIG}" || die "Unable to read configuration file [${CONFIG}]"
+source "${CONFIG}" 2>/dev/null || die "Unable to read configuration file [${CONFIG}]"
 
 # Process command line switches
 while (( $# > 0 ))
