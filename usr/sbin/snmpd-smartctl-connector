@@ -142,7 +142,7 @@ function send_device_attr
 
 	# Find the entry in above file
     # shellcheck disable=SC2207
-	if VALUES=($(grep -m 1 -E ${1} < "${DEVFNAME}")); then
+	if VALUES=($(grep -m 1 -E "${1}" < "${DEVFNAME}")); then
 		if [[ "${2}" == "R" ]]; then
 			if is_positive_integer "${VALUES[9]}"; then
 				send_gauge "${3}" "${VALUES[9]}"
